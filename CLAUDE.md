@@ -7,7 +7,7 @@ bank under `Mejores_Practicas/`.
 ## Skills system
 
 When working on anything IRIS Interoperability, the `iris-interop-*` skills steer
-behaviour. They assume the **`iris-dev` MCP server** is enabled (hard dependency).
+behaviour. They assume the **`iris-agentic-dev` MCP server** is enabled (hard dependency).
 
 **Messages are the foundational building block** — design the message class before
 BS/BP/BO. The `iris-interop` router skill enforces this and points to the right

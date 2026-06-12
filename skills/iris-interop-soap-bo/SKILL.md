@@ -148,7 +148,7 @@ Sync vs Async: SOAP calls are usually synchronous (you want the response). But i
 
 ## Testing / how to verify
 
-1. Compile the generated classes via iris-dev MCP. WSDL ambiguities surface as compile errors.
+1. Compile the generated classes via iris-agentic-dev MCP. WSDL ambiguities surface as compile errors.
 2. **Inside the wizard's Test page** → invoke each operation with sample input. Confirms the BO can reach the endpoint and parse the response.
 3. From a unit test (`iris-interop-unit-tests`), invoke the BO method directly with a constructed request. Stub the endpoint with a local mock if the real endpoint isn't reachable.
 4. Use `iris-interop-message-search-debug` to confirm Visual Trace shows the request → response cycle correctly when the BO is called from a BP.

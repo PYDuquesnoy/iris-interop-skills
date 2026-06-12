@@ -181,8 +181,8 @@ Four non-obvious rules (each cost a debug cycle — see friction log):
 
 ## Testing / how to verify
 
-1. Compile via iris-dev MCP. Confirm no errors.
-2. Add the BS to the production via iris-dev MCP (or Management Portal). Set `TargetConfigNames`.
+1. Compile via iris-agentic-dev MCP. Confirm no errors.
+2. Add the BS to the production via iris-agentic-dev MCP (or Management Portal). Set `TargetConfigNames`.
 3. Drop a sample input (file, message, etc.). Watch the Event Log; confirm the BS picked it up and dispatched.
 4. Use `iris-interop-message-search-debug` to follow the Visual Trace from the BS through downstream components.
 5. Negative test: omit a required setting. The BS should refuse to start (red status, error in Event Log).

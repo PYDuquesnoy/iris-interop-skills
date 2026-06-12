@@ -15,10 +15,58 @@ and manage the production lifecycle — with a TDD-first workflow throughout.
 ## Requirements
 
 - **Claude Code**.
-- The **`iris-dev` MCP server** (hard dependency). The skills assume Claude can
+- The **`iris-agentic-dev` MCP server** (hard dependency). The skills assume Claude can
   talk to a running IRIS for Health instance through it — load/compile classes,
   import schemas and lookups, run productions and unit tests, search messages.
 - An IRIS For Health (or IRIS + Interoperability) instance to build against.
+
+## Set up the `iris-agentic-dev` MCP server
+
+The skills drive IRIS through the **`iris-agentic-dev`** MCP server
+([intersystems-community/iris-agentic-dev](https://github.com/intersystems-community/iris-agentic-dev)),
+a single self-contained binary.
+
+1. **Get the binary** — download the release asset for your platform from
+   [Releases](https://github.com/intersystems-community/iris-agentic-dev/releases)
+   (`iris-agentic-dev-windows-x86_64.exe`, `…-macos-arm64`, `…-linux-x86_64`), or on
+   macOS: `brew tap intersystems-community/iris-agentic-dev && brew install iris-agentic-dev`.
+   Put it somewhere on disk (e.g. `C:\iris-agentic-dev\iris-agentic-dev.exe`) and check it runs:
+   `iris-agentic-dev --version`.
+
+2. **Register it as an MCP server** — add a `.mcp.json` at your project root (or use
+   `claude mcp add`). Point `command` at the binary and set the connection `env` to your IRIS:
+
+   ```json
+   {
+     "mcpServers": {
+       "iris-agentic-dev": {
+         "command": "C:\\iris-agentic-dev\\iris-agentic-dev.exe",
+         "args": ["mcp"],
+         "env": {
+           "IRIS_HOST": "localhost",
+           "IRIS_WEB_PORT": "52773",
+           "IRIS_USERNAME": "_SYSTEM",
+           "IRIS_PASSWORD": "SYS",
+           "IRIS_NAMESPACE": "USER"
+         }
+       }
+     }
+   }
+   ```
+
+   | Variable | Default | Notes |
+   |---|---|---|
+   | `IRIS_HOST` | `localhost` | Web gateway host |
+   | `IRIS_WEB_PORT` | `52773` | Web gateway port (e.g. `80` for an IRIS community install behind the private web server) |
+   | `IRIS_SCHEME` | `http` | `http` / `https` |
+   | `IRIS_WEB_PREFIX` | _(empty)_ | URL path prefix for non-root installs (e.g. `irishealth`) |
+   | `IRIS_USERNAME` / `IRIS_PASSWORD` | `_SYSTEM` / `SYS` | IRIS credentials |
+   | `IRIS_NAMESPACE` | `USER` | Default namespace |
+
+3. **Enable + verify** — make sure the server is enabled for the project
+   (`"enabledMcpjsonServers": ["iris-agentic-dev"]` in `.claude/settings.json`), restart Claude
+   Code, and run the `check_config` tool to confirm it connects and the tools (`iris_doc`,
+   `iris_compile`, `iris_execute`, `iris_query`, `iris_test`, …) are available.
 
 ## Install
 
