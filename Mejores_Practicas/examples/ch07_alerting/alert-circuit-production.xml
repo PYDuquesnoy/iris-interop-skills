@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Rule: BestPractices_Ensemble_IRIS.md §7.1 "Alert circuit — the canonical pattern"
+     Validity: Still valid.
+     Severity: High.
+
+     Canonical alert circuit:
+       - Ens.Alert is a EnsLib.MsgRouter.RoutingEngine (dedup via routing rules).
+       - EnsLib.Email.AlertOperation sends Ens.AlertRequest messages by email.
+       - Filter routing rule uses examples/ch07_alerting/alert-dedup-functionset.cls
+         to dedupe alerts (PYD.FilterAlerts.AlreadyReportedErr / AlreadyReportedPerSession).
+       - CRITICAL: Ens.Alert AND the BO that sends the alert must have "Send Alert on Error"
+         DISABLED to avoid infinite loops (every other Business Host has it enabled).
+-->
+<Export generator="IRIS" version="26">
+  <Production name="Example.Alerting.Production">
+    <ActorPoolSize>2</ActorPoolSize>
+    <Setting Target="Adapter" Name="Description">Canonical alert circuit (per §7.1).</Setting>
+
+    <!-- ProductionMonitorService — heartbeat for the production health -->
+    <Item Name="Ens.ProductionMonitorService" Category="Alerting"
+          ClassName="Ens.ProductionMonitorService"
+          PoolSize="1" Enabled="true" Comment="§1.6 baseline">
+    </Item>
+
+    <!-- Ens.Alert routing engine — Send Alert on Error MUST be DISABLED here -->
+    <Item Name="Ens.Alert" Category="Alerting"
+          ClassName="EnsLib.MsgRouter.RoutingEngine"
+          PoolSize="1" Enabled="true"
+          Comment="Routes Ens.AlertRequest to the email operation; dedup rules attached.">
+      <Setting Target="Host" Name="AlertOnError">false</Setting>
+      <Setting Target="Host" Name="BusinessRuleName">Example.Alerting.RUL.AlertRouter</Setting>
+    </Item>
+
+    <!-- AlertOperation — Send Alert on Error MUST be DISABLED here -->
+    <Item Name="EnsLib.Email.AlertOperation" Category="Alerting"
+          ClassName="EnsLib.Email.AlertOperation"
+          PoolSize="1" Enabled="true"
+          Comment="Sends Ens.AlertRequest messages to the distribution list.">
+      <Setting Target="Host" Name="AlertOnError">false</Setting>
+      <Setting Target="Adapter" Name="SMTPServer">smtp.example.org</Setting>
+      <Setting Target="Adapter" Name="Recipient">interop-alerts@example.org</Setting>
+    </Item>
+
+  </Production>
+</Export>
+
+<!-- Companion business rule (paste into a Business Rule class with the dedup function-set):
+
+  Class Example.Alerting.RUL.AlertRouter Extends Ens.Rule.Definition
+  {
+    Parameter RuleAssistClass = "EnsLib.MsgRouter.RuleAssist";
+
+    XData RuleDefinition [ XMLNamespace = "http://www.intersystems.com/rule" ]
+    {
+    <ruleDefinition alias="" context="EnsLib.MsgRouter.RoutingEngine.Context" production="">
+      <ruleSet name="Default" effectiveBegin="" effectiveEnd="">
+        <rule name="dedupBySession" disabled="false">
+          <when condition='##class(PYD.FilterAlerts.FunctionSet).AlreadyReportedPerSession()=1'>
+            <return>0</return>  // skip
+          </when>
+        </rule>
+        <rule name="dedupByErrText" disabled="false">
+          <when condition='##class(PYD.FilterAlerts.FunctionSet).AlreadyReportedErr(SourceConfigName, AlertText, 60)=1'>
+            <return>0</return>
+          </when>
+        </rule>
+        <rule name="forward" disabled="false">
+          <when condition="1">
+            <send transform="" target="EnsLib.Email.AlertOperation"/>
+          </when>
+        </rule>
+      </ruleSet>
+    </ruleDefinition>
+    }
+  }
+
+-->

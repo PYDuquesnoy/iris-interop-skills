@@ -1,0 +1,6 @@
+.vs
+obj
+bin
+*.bak
+shared/DICOMDIR
+local/*

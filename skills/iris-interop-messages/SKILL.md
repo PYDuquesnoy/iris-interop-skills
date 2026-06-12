@@ -1,0 +1,186 @@
+---
+name: iris-interop-messages
+description: Use when designing IRIS Interoperability message classes — HL7 messages (EnsLib.HL7.Message), persistent custom messages (Ens.Request/Ens.Response + %Persistent), SOAP wizard messages, or %SerialObject payloads. Triggers: definir mensaje, crear mensaje, message class, Ens.Request, Ens.Response, request, response.
+---
+
+# Messages — the foundational building block
+
+Messages are the **first thing to design** in any IRIS Interoperability production. They're the request/response types of every Business Process and Business Operation, and the response of Business Services. Get them wrong and you propagate damage through every component.
+
+## When to use this skill
+
+The user is about to (or should be about to) define what data flows between components. Triggers: "I need a message for X", "request class for the BO", "what should the BS send", "definir el mensaje".
+
+## Decision tree
+
+```
+Is the data HL7 v2.x?
+├── YES → Use EnsLib.HL7.Message directly. Do NOT subclass for storage.
+│         DocType (e.g. "2.5:ADT_A01") sets structure.
+└── NO
+    ├── Is it a SOAP request/response from a WSDL?
+    │   ├── YES → Use the SOAP wizard. It generates message classes from WSDL.
+    │   │         Wizard outputs are usually %SerialObject for the payload,
+    │   │         wrapped in an Ens.Request/Response carrier.
+    │   └── NO
+    │       └── Custom payload → persistent message (see below)
+```
+
+## Canonical pattern — custom persistent message
+
+A custom message in IRIS Interoperability inherits **both** `Ens.Request` (or `Ens.Response`) **and** `%Persistent`. Without `%Persistent`, the message body is stored in the shared `Ens.MessageBodyD` global, which is hard to query, hard to purge, and inflates retention storage.
+
+```objectscript
+Class MyApp.Msg.PatientCensusRequest Extends (Ens.Request, %Persistent)
+{
+Property PatientId As %String;
+Property AdmissionDate As %TimeStamp;
+Property Department As %String(MAXLEN=80);
+
+Storage Default { /* lives in MyApp.Msg.PatientCensusRequestD, not Ens.MessageBodyD */ }
+}
+```
+
+Pair Request with a Response class extending `(Ens.Response, %Persistent)`. If the operation is fire-and-forget, return `Ens.Response` directly — no custom Response class needed.
+
+## Canonical pattern — HL7 message
+
+Don't create a class. Use `EnsLib.HL7.Message` everywhere a message body is referenced:
+
+```objectscript
+Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Response) As %Status
+```
+
+The DocType (e.g. `2.5:ADT_A01`) controls structure; it's set on the BS adapter or assigned in a DTL.
+
+## Canonical pattern — SOAP-wizard messages
+
+SOAP wizard output: payload classes typically `%SerialObject` (embedded, no separate storage). For very complex SOAP messages — e.g. a CDA wrapped in SOAP, with deeply recursive structures — switch the payload to `%Persistent` so each instance gets its own storage and the recursion doesn't blow up `Ens.MessageBodyD`. Add a delete trigger so child rows are cleaned up on parent purge.
+
+## CDA-from-XSD persistence pattern
+
+When importing CDA documents into ObjectScript classes from the XSD via the XML Schema Wizard, the only combination that works reliably:
+
+- **Persistent** — required so CDA instances persist alongside Ensemble messages.
+- **No Relationships** — the wizard's `Relationships=1` option causes XML serialisation to take ~60 seconds per CDA, unusable in production.
+- **`OnDelete = Cascade`** on the parent-child links — so purging an Ensemble message also purges the CDA child rows; otherwise orphaned rows accumulate forever.
+
+Alternatives that **fail**:
+
+- `Serializable` (the default `%SerialObject` choice for the wizard) — produces a cyclic-reference compile error when a CDA `Component` recursively contains `Component`.
+- Persistent with Relationships — slow XML serialisation as above.
+
+Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch03_cda/cda-from-xsd-persistence-pattern.cls`.
+
+**Stylesheet security note**: the standard HL7 CDA stylesheet (`cda.xsl`) had multiple security holes before April 2014 — XSS via `nonXMLBody` rendered inside an `<iframe>`, illegal table attributes (`onmouseover`), image URIs to hostile sites. Use only the patched version from the HL7 Structured Documents Working Group.
+
+## Comanda / Resposta inheritance for one-of-N payload subtypes
+
+When a schema defines an envelope type whose actual content is one of N subtypes (e.g. `Comanda` whose body is one of `Comanda_SC1`, `Comanda_SC2`, ..., or an abstract `Order` with concrete `LabOrder` / `RadiologyOrder` subclasses), make the generated wrapper class **abstract** and create concrete subclasses for each variant. The BS instantiates the concrete class based on inspection of the inbound payload.
+
+This unlocks two things:
+
+1. The DataTransform Wizard sees concrete types and proposes correct field mappings per variant.
+2. Routing rules can constrain by `msgClass` to dispatch the variants to different processors.
+
+Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch03_cda/comanda-resposta-inheritance.cls`.
+
+## SOAP envelope carrying HL7 / CDA as MessageBody
+
+When a partner's WSDL specifies a custom `acceptMessage(message)` operation with the HL7 ER7 text in a string field — **not** the standard `EnsLib.HL7.Util.SOAPClient` shape — customise the wizard-generated SOAP proxy:
+
+- Change the parameter from `%String` to `%Stream.GlobalCharacter` (HL7 messages exceed string limits routinely).
+- Copy `EnsLib.HL7.Operation.SOAPOperation` as the BO base.
+- Override `..Adapter.WebServiceClientClass` to point to the custom proxy.
+- Override the invoked method: `..Adapter.InvokeMethod("acceptMessage", ...)` instead of the wizard's default `Send`.
+
+Same pattern applies for SOAP-carrying-CDA (e.g. `<publicarDocument>` with a `<ClinicalDocument xmlns="urn:hl7-org:v3">` directly in the SOAP Body parameter).
+
+Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch03_cda/soap-messagebody-hl7-proxy.cls`.
+
+## XML projection — three settings to know
+
+When a message class is projected to XML (SOAP payloads, REST XML responses, file-exported documents), three settings control output behaviour:
+
+| Setting | Effect | When to set |
+|---|---|---|
+| `XMLIGNORENULL = 1` (class-level, NOT property-level) | Empty-string properties appear as empty elements (`<Field/>`) instead of being omitted. | When the partner schema requires the elements to be present even when empty. **Caveat**: for `list Of <T>` collections where every item is empty, the list element is still omitted — there is no clean way to force its presence except manual XML manipulation. |
+| `CONTENT = "STRING"` on a `%Stream.GlobalCharacter` property | Wraps content in `<![CDATA[...]]>`. | When the payload is XML you don't want re-escaped (e.g. CDA inside a SOAP envelope). |
+| `CONTENT = "ESCAPE"` on a `%Stream.GlobalCharacter` property | XML-escapes the text. | For free-text fields that may contain `<` or `&`. |
+| `OUTPUTTYPEATTRIBUTE = 0` (class-level on SOAP proxy) | Suppresses `xsi:type` attributes on every element. | When the partner SOAP server rejects messages with `xsi:type` (some SAP, some vendor servers — see `iris-interop-soap-bo §6.1.2`). |
+
+Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch05_bpl_dtl/xml-projection-settings.cls`.
+
+## Common pitfalls
+
+- **Custom message without `%Persistent`** → bodies stored in `Ens.MessageBodyD`, unsearchable by property, slow to purge.
+- **Subclassing `EnsLib.HL7.Message`** → almost always wrong; HL7 is structurally defined by DocType, not by class hierarchy.
+- **Putting business properties on the carrier instead of the payload** in SOAP scenarios → wizard regeneration overwrites them.
+- **Missing pair**: Request without matching Response when the operation is synchronous and the BP expects a typed response.
+- **Forgetting indexes** on properties used by `iris-interop-message-search-debug` — message search is fast only on indexed properties.
+- **Recursive properties on a `%SerialObject`** (e.g. CDA's nested sections) → switch to `%Persistent` and add a delete trigger.
+- **Adding `SourceFilename` / `SourceLine` to a message that comes from a Record Mapper Record** for CSV-line forensics → Record Mapper doesn't fill those properties at runtime, even if you declare them. If you need this correlation, propagate from the BS adapter (e.g. `Ens.MessageHeader` carries `%Source` / `%FileName` from the file adapter) instead of adding properties that stay empty.
+
+## Testing / how to verify
+
+After compiling the message class:
+
+1. From the iris-dev MCP, run a class compilation and confirm no errors.
+2. Open the Management Portal → System Explorer → Classes; confirm the class has its **own** SQL projection / storage definition (not inheriting `Ens.MessageBodyD`).
+3. Smoke test: create one instance with `%Save()`, confirm it persists in the message-class-specific table, not in `Ens.MessageBodyD`.
+
+## Polymorphic extension pattern — growing a canonical message without breaking consumers
+
+When a second consumer needs **richer** data than the original canonical (e.g. an existing flow uses `MenuRequest` with `Alergias` as a pipe-string, and a new SOAP/REST destination wants `Alergias` as a typed `list of %String`), **don't replace the canonical** — extend it with a subclass:
+
+```objectscript
+Class MyApp.Msg.MenuRequest Extends (Ens.Request, %Persistent)
+{
+Property PacienteId As %String(MAXLEN = 20) [ Required ];
+Property Nombre     As %String(MAXLEN = 100) [ Required ];
+Property Alergias   As %String(MAXLEN = 500);   ; pipe-separated, legacy consumers read this
+// ... other 3.1 properties ...
+}
+
+Class MyApp.Msg.MenuRequestRich Extends MyApp.Msg.MenuRequest
+{
+Property AlergiasList            As list Of %String(MAXLEN = 100);   ; typed collection
+Property AlergiasAcompananteList As list Of %String(MAXLEN = 100);
+Property AcompananteNombre       As %String(MAXLEN = 100);
+Property TieneAcompanante        As %Boolean [ InitialExpression = 0 ];
+}
+```
+
+Then DTLs that produce `MenuRequestRich` **fill both** representations — `target.Alergias = "A|B|C"` AND `Insert` each into `target.AlergiasList`. Legacy consumers (the JDBC BO) keep reading the inherited string field; new consumers (SOAP/REST BO) read the typed list. The routing rule uses two `<send target>` lines pointing at the relevant BOs — polymorphism handles dispatch.
+
+Trade-off: one place to remember "fill both forms when producing Rich". Win: existing tests stay green, no message class duplication, the canonical grows monotonically.
+
+## `%String` for fields that collect from HL7/REST sources
+
+A canonical message that takes values from HL7 segments or REST JSON should declare **almost everything as `%String`**. Typing `Planta As %SmallInt` and then receiving `"PLANTA3"` from `PV1:3.1` or `"P3"` from a lookup produces `ERROR #7207: Datatype value 'PLANTA3' is not a valid number` and terminates the BP. Convert/validate in the DTL **after** extraction, not via property datatype.
+
+Strict types like `%SmallInt`, `%Integer`, `%Boolean`, `%Date` are fine for fields that are populated programmatically (`req.PacienteId = ...` from controlled code) but risky for fields populated from external sources. `%String` plus runtime validation gives clearer error messages and decouples the canonical from upstream surprises.
+
+## Collections — `list Of` for typed multi-valued fields
+
+For HL7 repeating fields (AL1*, NK1*), REST JSON arrays, or any multi-valued source, the canonical's property is `list Of %String(MAXLEN=N)` (or `list Of <ObjectClass>`). The DTL fills the list with `Insert`. Persistence storage is automatic. SQL projection generates a child table `<Parent>_<PropertyName>` for queries like:
+
+```sql
+SELECT COUNT(*) FROM <Pkg>_Msg.<Parent>_AlergiasList WHERE <Parent> = :id
+```
+
+Don't substitute a pipe-string property for a typed collection if downstream consumers want collection semantics — the conversion belongs in the DTL one time, not in every consumer.
+
+## When NOT to use this skill — fall back to docs
+
+- Designing FHIR resources (use `HS.FHIR.*` patterns — different from generic Interop messages).
+- Designing message classes for non-Interoperability contexts (plain `%Persistent`, no `Ens.Request` inheritance).
+- DICOM messages — see `iris-interop-dicom` (stub).
+
+## See also
+
+- `iris-interop-business-services` — what the BS will produce as a message
+- `iris-interop-business-operations` — what the BO consumes as request and returns as response
+- `iris-interop-hl7-schemas` — when the HL7 message needs a custom Z-segment schema
+- `iris-interop-soap-bo` — SOAP wizard customisations, including `xsi:type` suppression and other generated-proxy patches
+- `iris-interop-fhir` — FHIR resources are not generic Interop messages; different rules apply
