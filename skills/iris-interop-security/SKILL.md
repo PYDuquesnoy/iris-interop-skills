@@ -46,7 +46,7 @@ Set tSC = ..Adapter.InvokeMethod("methodName", .tResponse, ...)
 
 Expose an X.509 `SAMLCredentials` BO setting that aliases an IRIS credentials configuration. This decouples the signing certificate from the code so the cert can be rotated per-environment without redeployment.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch11_security/saml2-custom-security-header.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch11_security/saml2-custom-security-header.cls`.
 
 ## SAML 1.1
 
@@ -82,7 +82,7 @@ Use IRIS as an OAuth 2.0 broker between a third-party SaaS app and on-premise Ac
 
 May also need to patch `OAuth2.Server.Client.ValidateRedirectURL` when the redirect URI host is externally constrained.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch11_security/oauth2-server-validate-ldap.cls.xml`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch11_security/oauth2-server-validate-ldap.cls.xml`.
 
 ### Mobile clients (PKCE)
 
@@ -105,7 +105,7 @@ To enforce strict server-certificate validation on an IRIS client SSL configurat
 4. **Order matters**: server cert → intermediate CA → root CA.
 5. **Optimisation**: once the chain works, remove the server's own cert from the `.PEM`. Keep only intermediate + root. The server presents its own cert during the TLS handshake; the IRIS-side file only needs the trust anchors. This decouples the IRIS config from the server's annual cert-renewal cycle.
 
-Helper script: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch11_security/ssl-trusted-ca-chain.sh`.
+Helper script: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch11_security/ssl-trusted-ca-chain.sh`.
 
 ## ZAUTHENTICATE for external LDAP
 

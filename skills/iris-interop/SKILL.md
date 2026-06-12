@@ -114,7 +114,7 @@ System Default Settings are the **only** layer that does NOT migrate via a produ
 | **Alert circuit** — `Ens.Alert` router, dedup function set, ProductionMonitorService, per-BO alert settings | `iris-interop-alerting` |
 | **About to build *anything* (DTL, rule, BO method, BPL) — TDD workflow** | **`iris-interop-tdd`** (entry point; non-negotiable) |
 | %UnitTest framework toolbox (storage, runner flags, ^UnitTest.Result) | `iris-interop-unit-tests` (lower-level reference; the TDD skill calls into it) |
-| Anything DICOM (C-STORE, C-FIND, C-MOVE, MWL, STOW-RS, modalities, PACS) | `iris-interop-dicom` (architecture + wiring patterns; defers byte-level work to docs + vendored sample at `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/external/workshop-iris-dicom-interop/`) |
+| Anything DICOM (C-STORE, C-FIND, C-MOVE, MWL, STOW-RS, modalities, PACS) | `iris-interop-dicom` (architecture + wiring patterns; defers byte-level work to docs + vendored sample at `${CLAUDE_PLUGIN_ROOT}/BestPractices/external/workshop-iris-dicom-interop/`) |
 
 ## Recommended build order
 

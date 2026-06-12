@@ -70,7 +70,7 @@ Alternatives that **fail**:
 - `Serializable` (the default `%SerialObject` choice for the wizard) — produces a cyclic-reference compile error when a CDA `Component` recursively contains `Component`.
 - Persistent with Relationships — slow XML serialisation as above.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch03_cda/cda-from-xsd-persistence-pattern.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch03_cda/cda-from-xsd-persistence-pattern.cls`.
 
 **Stylesheet security note**: the standard HL7 CDA stylesheet (`cda.xsl`) had multiple security holes before April 2014 — XSS via `nonXMLBody` rendered inside an `<iframe>`, illegal table attributes (`onmouseover`), image URIs to hostile sites. Use only the patched version from the HL7 Structured Documents Working Group.
 
@@ -83,7 +83,7 @@ This unlocks two things:
 1. The DataTransform Wizard sees concrete types and proposes correct field mappings per variant.
 2. Routing rules can constrain by `msgClass` to dispatch the variants to different processors.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch03_cda/comanda-resposta-inheritance.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch03_cda/comanda-resposta-inheritance.cls`.
 
 ## SOAP envelope carrying HL7 / CDA as MessageBody
 
@@ -96,7 +96,7 @@ When a partner's WSDL specifies a custom `acceptMessage(message)` operation with
 
 Same pattern applies for SOAP-carrying-CDA (e.g. `<publicarDocument>` with a `<ClinicalDocument xmlns="urn:hl7-org:v3">` directly in the SOAP Body parameter).
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch03_cda/soap-messagebody-hl7-proxy.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch03_cda/soap-messagebody-hl7-proxy.cls`.
 
 ## XML projection — three settings to know
 
@@ -109,7 +109,7 @@ When a message class is projected to XML (SOAP payloads, REST XML responses, fil
 | `CONTENT = "ESCAPE"` on a `%Stream.GlobalCharacter` property | XML-escapes the text. | For free-text fields that may contain `<` or `&`. |
 | `OUTPUTTYPEATTRIBUTE = 0` (class-level on SOAP proxy) | Suppresses `xsi:type` attributes on every element. | When the partner SOAP server rejects messages with `xsi:type` (some SAP, some vendor servers — see `iris-interop-soap-bo §6.1.2`). |
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch05_bpl_dtl/xml-projection-settings.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch05_bpl_dtl/xml-projection-settings.cls`.
 
 ## Common pitfalls
 

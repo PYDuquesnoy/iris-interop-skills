@@ -49,7 +49,7 @@ Production XML excerpt for the alert circuit:
       ClassName="Ens.MonitorService" PoolSize="1" Enabled="true"/>
 ```
 
-A complete production XML with this wiring lives in `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch07_alerting/alert-circuit-production.xml`.
+A complete production XML with this wiring lives in `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch07_alerting/alert-circuit-production.xml`.
 
 ## Alert deduplication — `Ens.Alert` routing-rule guards
 
@@ -99,7 +99,7 @@ Wire it in the `Ens.Alert` routing rule as a guard:
 when MyApp.UTL.AlertFilterFunctions.AlreadyReportedErr(SourceConfigName, AlertText, 60) → skip
 ```
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch07_alerting/alert-dedup-functionset.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch07_alerting/alert-dedup-functionset.cls`.
 
 Notes on the dedup design:
 

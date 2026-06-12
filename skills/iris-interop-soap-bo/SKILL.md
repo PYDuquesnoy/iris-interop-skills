@@ -74,7 +74,7 @@ The wizard-generated classes **are meant to be edited**. Document every patch yo
 
 The WS-Policy assertion is not used at runtime by the IRIS client — the actual TLS / signing policy is configured separately on the BO (SSL config setting, credentials, etc.). The XData block is dead weight that happens to break compilation.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch06_adapters/soap-wsdl-policyreference-fix.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch06_adapters/soap-wsdl-policyreference-fix.cls`.
 
 ### Vendor rejects `xsi:type` attributes
 
@@ -82,7 +82,7 @@ Even when types match the schema, some vendor SOAP servers (notably SAP and cert
 
 **Fix**: `Parameter OUTPUTTYPEATTRIBUTE = 0;` on the generated SOAP client class. See `iris-interop-messages` for the same setting in the XML-projection context.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch06_adapters/soap-xsi-type-suppress.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch06_adapters/soap-xsi-type-suppress.cls`.
 
 ### Drop `REQUIRED=1` flags on generated properties
 
@@ -90,7 +90,7 @@ Some vendor services accept SOAP messages with fewer fields than the WSDL declar
 
 **Fix**: drop `[ Required ]` (`REQUIRED=1` in CDL) from the affected generated properties. Document each one in the patch comments.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch06_adapters/soap-required-flag-drop.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch06_adapters/soap-required-flag-drop.cls`.
 
 ### Strongly-typed dates / times — downgrade to `%String`
 
@@ -98,7 +98,7 @@ Where the WSDL declares `xs:date` or `xs:time` and the vendor server cannot actu
 
 The transmitted lexical form (`2026-05-13` for date, `14:30:00` for time) is correct regardless — the IRIS-side type was forcing a normalization step the vendor couldn't reverse. With `%String`, the field passes through unchanged.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch06_adapters/soap-typed-dates-to-string.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch06_adapters/soap-typed-dates-to-string.cls`.
 
 ### `RESPONSENAMESPACE` doesn't match what the vendor actually returns
 
@@ -106,7 +106,7 @@ The WSDL specifies one response namespace; the actual SOAP responses come back w
 
 **Fix**: override `Parameter RESPONSENAMESPACE` on the generated proxy to the actual namespace the vendor returns. **General rule** for any SOAP integration: don't trust the WSDL blindly — capture an actual response (with `iris-interop-message-search-debug` SOAP tracing) and align the generated client to what's on the wire.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch06_adapters/soap-response-namespace-override.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch06_adapters/soap-response-namespace-override.cls`.
 
 ### XML namespace alias must literally be `urn`
 

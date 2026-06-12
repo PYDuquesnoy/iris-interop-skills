@@ -258,7 +258,7 @@ When a third-party library is only available as Java (legacy SAML modules, custo
 
 In 2025+, prefer **External Language Server** references over `EnsLib.JavaGateway.Service` (the gateway class is deprecated in IRIS 2026.1 in favour of ELS-direct references). The JavaGateway BO pattern itself still works but flag it as "use sparingly" — most legacy use cases now have native ObjectScript alternatives (e.g. SAML via `intersystems-ib/SAML-COS` instead of a Java SAML module).
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch06_adapters/javagateway-bo.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch06_adapters/javagateway-bo.cls`.
 
 ## Lab device integration — DT in both directions
 

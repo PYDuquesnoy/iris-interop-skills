@@ -212,7 +212,7 @@ When you need a Business Service that accepts inbound SOAP requests:
 4. Implement web methods with `[WebMethod]` and parameters typed to your `MSG.<Name>Req|Rsp` classes.
 5. Override `OnProcessInput` and call the BP synchronously or asynchronously as the use case requires.
 
-Worked example: `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/examples/ch05_bpl_dtl/soap-business-service.cls`.
+Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch05_bpl_dtl/soap-business-service.cls`.
 
 ## Scheduled BS — wall-clock vs interval
 

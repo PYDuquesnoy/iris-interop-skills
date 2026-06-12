@@ -12,6 +12,15 @@ and manage the production lifecycle — with a TDD-first workflow throughout.
 > Originally built for the *"From Prompt to Production"* IRIS interoperability
 > workshop. Published standalone so you can keep using the skills after the course.
 
+## Quick start
+
+Two steps, in order:
+
+1. **Set up the `iris-agentic-dev` MCP server** — the skills' runtime dependency
+   (binary + `.mcp.json`). See [*Set up the MCP server*](#set-up-the-iris-agentic-dev-mcp-server).
+2. **Install this plugin** — `/plugin marketplace add` + `/plugin install`.
+   See [*Install*](#install).
+
 ## Requirements
 
 - **Claude Code**.
@@ -82,7 +91,7 @@ class first**, before BS/BP/BO.
 
 Prefer not to install as a plugin? Clone the repo and open it as a project —
 Claude discovers the skills under `skills/` and the examples under
-`Mejores_Practicas/`.
+`BestPractices/`.
 
 ## What's inside
 
@@ -108,9 +117,9 @@ Claude discovers the skills under `skills/` and the examples under
 | `iris-interop-tdd` | TDD-first workflow (companion skill — load it alongside the others). |
 | `iris-interop-unit-tests` | `%UnitTest` framework reference. |
 
-### Best practices & worked examples (`Mejores_Practicas/`)
+### Best practices & worked examples (`BestPractices/`)
 
-- `BestPractices_Ensemble_IRIS.md` — a synthesis of interoperability patterns,
+- `BestPractices_Interop_IRIS.md` — a synthesis of interoperability patterns,
   each tagged with a **Validity** and **Severity**.
 - `examples/` — standalone, runnable code artefacts (`.cls` / `.xml` / `.sh`)
   for the trickier patterns, indexed by rule in `examples/README.md`. Several
@@ -124,4 +133,4 @@ the patterns are vendor-neutral.
 ## License
 
 MIT — see [`LICENSE`](LICENSE). The vendored DICOM snapshot keeps its own MIT
-license under `Mejores_Practicas/external/workshop-iris-dicom-interop/LICENSE`.
+license under `BestPractices/external/workshop-iris-dicom-interop/LICENSE`.

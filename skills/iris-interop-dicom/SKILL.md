@@ -8,7 +8,7 @@ description: Use when the user mentions DICOM, modality worklists (MWL), C-STORE
 DICOM is a protocol family of its own inside Interop. The wiring shape, message
 types, and runtime semantics differ from HL7v2 / FHIR / SOAP, so the patterns
 below are non-portable from the rest of the skill set. The vendored sample
-at `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/external/workshop-iris-dicom-interop/`
+at `${CLAUDE_PLUGIN_ROOT}/BestPractices/external/workshop-iris-dicom-interop/`
 (MIT-licensed snapshot — see `UPSTREAM.md` for SHA) is the canonical reference
 for every pattern here.
 
@@ -240,23 +240,25 @@ and use less idiomatic 2024-era patterns. **Default starting point: the
 vendored sample**, fall back to the in-namespace samples only for tag-level
 spelunking.
 
-## Docker harness in the vendored sample
+## Running it end-to-end (upstream lab)
 
-The snapshot ships a self-contained lab — `docker-compose.yml` brings up:
+The vendored snapshot here keeps only the ObjectScript **source** (`iris/src/DICOM/`).
+The **upstream repo** ships a self-contained runnable lab — `docker-compose.yml`
+brings up:
 
 - `iris` (IRIS for Health) with the production pre-installed
 - `mysql` (MWL source DB)
 - `tools` (dcm4che container with `storescu` / `findscu` / `dcmqrscp` / `stowrs`)
 
-The `shared/` volume carries 17 sample `.dcm` files, a PDF for embedded-report
-generation, and `ae.properties` for the simulator. End-to-end tests run
-without an external PACS. Run `docker-compose up -d` then follow the README
-in the snapshot.
+plus a `shared/` volume with sample `.dcm` files, a PDF for embedded-report
+generation, and `ae.properties` for the simulator. To run end-to-end tests
+without an external PACS, clone `intersystems-ib/workshop-iris-dicom-interop`,
+`docker-compose up -d`, and follow its README.
 
 ## TLS for DIMSE
 
 Mutual-TLS between SCU and SCP is configured per AE/component, not at instance
-level. The snapshot's `TLS.md` walks through CA + server + client cert
+level. The upstream repo's `TLS.md` walks through CA + server + client cert
 generation with `openssl` and the IRIS-side SSL/TLS Configuration. Cross-ref
 to `iris-interop-security` for cert chain validation patterns.
 
@@ -318,7 +320,7 @@ For all of the above: IRIS DICOM docs + the vendored sample + the upstream
 
 ## Reference
 
-- **Local snapshot (canonical):** `${CLAUDE_PLUGIN_ROOT}/Mejores_Practicas/external/workshop-iris-dicom-interop/` (frozen, MIT, see `UPSTREAM.md` for SHA)
+- **Local snapshot (canonical):** `${CLAUDE_PLUGIN_ROOT}/BestPractices/external/workshop-iris-dicom-interop/` (frozen, MIT, see `UPSTREAM.md` for SHA)
 - **Upstream:** https://github.com/intersystems-ib/workshop-iris-dicom-interop
 - **IRIS docs:** https://docs.intersystems.com/healthconnectlatest/csp/docbook/DocBook.UI.Page.cls?KEY=EDICOM
 - **dcm4che tools (used by the snapshot's `tools` container):** https://github.com/dcm4che/dcm4che
