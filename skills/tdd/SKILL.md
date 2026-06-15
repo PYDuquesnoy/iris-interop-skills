@@ -65,9 +65,11 @@ If the conversation is purely about wiring components into a production (product
 ```
 1. SPEC           Write the spec in one or two sentences in the conversation.
 2. TEST           Author Test* methods in a `%UnitTest.TestProduction` subclass, one per spec clause.
+                  Each Test* method must have a /// comment describing what spec clause it verifies.
 3. RED            Run the runner via `do ##class(My.Tests.X).Run()`. Confirm failures.
 4. IMPLEMENT      Write the minimum DTL/rule/BO method to satisfy the tests.
 5. GREEN          Run the runner. All tests pass.
+                  After GREEN, print the %UnitTest.Portal.Home URL so the user can inspect individual asserts.
 6. REFACTOR       Simplify with green tests as the safety net. Re-run.
 ```
 
@@ -105,6 +107,7 @@ Parameter PRODUCTION = "MyApp.Production";
 
 Method TestControl() As %Status { Quit $$$OK }   ; production managed externally
 
+/// Verifies that Apellido1 + Apellido2 are concatenated with a single space separator
 Method TestApellidosConcat()
 {
     Set src = ##class(MyApp.RecordMap.Censo.Record).%New()
@@ -116,6 +119,7 @@ Method TestApellidosConcat()
     Do $$$AssertEquals(tgt.Apellidos, "Pérez López", "Apellidos with single space")
 }
 
+/// Verifies that an invalid date (32/13/1990) is rejected with an error status
 Method TestFechaInvalidaSeAisla()
 {
     Set src = ##class(MyApp.RecordMap.Censo.Record).%New()
@@ -147,6 +151,7 @@ Method OnBeforeAllTests() As %Status
     Quit $$$OK
 }
 
+/// Verifies that the Router.Censo dispatches a census record to BO.Cocina
 Method TestRouterDispatchaACocina()
 {
     Set rec = ##class(MyApp.RecordMap.Censo.Record).%New()
@@ -196,6 +201,7 @@ Method ExpectInsertLogged(pBaseId, pPacienteId, pDesc)
     Do $$$AssertTrue(tFound, pDesc)
 }
 
+/// Verifies that empty Alergias ("") is marshalled correctly to SQL NULL by the JDBC adapter
 Method TestEmptyAlergiasToNull()
 {
     ; Catches marshalling bugs that no stub would: does the real JDBC driver
@@ -233,6 +239,7 @@ Method OnBeforeAllTests() As %Status
     Quit $$$OK
 }
 
+/// Verifies that BP.MyProcess receives a request and returns a response object
 Method TestProcessReceivesAndForwards()
 {
     Set req = ##class(MyApp.Msg.SomeRequest).%New()
@@ -277,7 +284,16 @@ do ##class(MyApp.Tests.BO.Menus2Cocina).Run()
 
 For runner mechanics — the `^UnitTestRoot` directory requirement, `DebugRunTestCase` qualifier syntax (boolean flags only), the MCP-friendly SqlProc wrapper that returns `passed=N failed=M`, how to read `^UnitTest.Result`, and the `Try / Catch + Quit` pitfall — see **`unit-tests`**. That skill is the framework toolbox; this one is the workflow.
 
-After running, **always print the portal URL** as the last line of test output so the user can drill into per-assert detail. URL pattern and the navigation chain are also in `unit-tests`.
+### After running — show the portal URL (ALWAYS)
+
+After every test run, **print the `%UnitTest.Portal.Home` URL** as the last line of output so the user can click through to drill into individual assert details. The portal provides navigable drill-down that is NOT visible from the terminal output alone.
+
+```objectscript
+// After Run(), always print this:
+Write !,"Test results: http://localhost:80/csp/sys/%25UnitTest.Portal.Home.cls?$NAMESPACE="_$NAMESPACE,!
+```
+
+Adjust the host/port/prefix per the instance. The `%25` is `%` URL-encoded. URL pattern and navigation chain details are in `unit-tests`.
 
 ## Error-handling idiom inside test helpers
 
@@ -307,6 +323,7 @@ See `business-operations` and `bpl` for the runtime side of the same rule.
 - **No fixture strategy** — paste-in literals everywhere. Centralize sample inputs in a fixtures class (`MyApp.Tests.Fixtures.Censo`).
 - **`TestingEnabled="true"` left in a deployed production** — security/integrity risk. Treat it like a debug flag. (Note: `TestingEnabled="true"` is the **correct default** in dev/workshop productions — only flagged here for environments with deploy-to-prod automation.)
 - **Asserting only on `$$$LOGINFO` presence in the event log** ("INSERT OK paciente_id=...") instead of on the row's actual contents → the log proves the BO method ran, not that the destination has the right values. Add at least one assert that reads the side-effect back: a `SELECT` via psql/`Adapter` in `OnAfterAllTests`, or a small **verifier BO** callable via `..SendRequest(verifier, query, .resp, 1)` that returns the row for property-by-property asserts. The log is necessary but insufficient.
+- **Test methods without a description comment** — When a test fails, the first thing the user sees is the method name in the portal. A `///` comment on the method clarifies *what spec clause* the test verifies, not just *what code it exercises*. One line is enough: `/// Verifies that empty Alergias is marshalled to SQL NULL`.
 
 ## Test data isolation — spectrum, not all-or-nothing
 
