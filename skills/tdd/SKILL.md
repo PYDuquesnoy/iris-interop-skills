@@ -1,0 +1,345 @@
+---
+name: tdd
+description: TDD-first workflow for IRIS Interoperability — the non-negotiable order is spec, then tests, then implementation. Test classes ALWAYS extend `%UnitTest.TestProduction` (the Interop-specific superclass), never `%UnitTest.TestCase` directly. Covers what's testable (DTL, routing rules, BO methods, BPL via Testing Service) and what isn't (Business Services, tested externally). Triggers when the user proposes building or modifying any Interop component, or asks how to test/validate one. Triggers ES: TDD, test driven, pruebas, validar, probar, antes de implementar, spec first, primero el test. Triggers EN: TDD, test driven, unit test, %UnitTest, validate before code, testing service.
+---
+
+# IRIS Interoperability — TDD-first workflow
+
+**This skill is non-negotiable.** Every Interop component (DTL, routing rule, custom BO method, BPL, message class with logic) is built **spec → test → red → implement → green → refactor**. If the user asks to write a transformation, a routing rule, or a BO method *and you don't see a test for it yet*, stop and write the test first. Push back politely if the user pushes you past this step.
+
+## Baseline class — `%UnitTest.TestProduction` (NOT `%UnitTest.TestCase`)
+
+**Test classes for Interop ALWAYS extend `%UnitTest.TestProduction`**, never plain `%UnitTest.TestCase`. The TestProduction superclass provides everything you'd otherwise reinvent:
+
+- **`Run()` / `Debug()` class methods**: invoke a single test class directly — `do ##class(My.Tests.X).Run()`. **Bypasses the directory-walker pitfall** of `%UnitTest.Manager.RunTest()` that requires `^UnitTestRoot`. No `/noload` gymnastics, no custom helper.
+- **`SendRequest(name, req, .resp, getReply, timeout)`**: wrapper over `EnsLib.Testing.Service.SendTestRequest`. One line instead of manual `$$$EnsRuntimeAppData` polling.
+- **`GetEventLog(type, configName, baseId, .Log, .new)`**: pulls `Ens_Util.Log` entries into an array, incremental. Type can be `info`, `error`, `warning`, `infouser`, `trace`, `alert`, `assert`, `startstop`, `other`. Replaces hand-written SQL embedded.
+- **`ChangeSetting(production, configName, setting, value)`** / **`GetSetting(...)`**: read/modify production item settings with validation.
+- **`CreateCredentials(id, user, pwd)`**: provision `Ens.Config.Credentials` (overwrites if exists).
+- **`CopyFile`, `CompareFiles`, `CleanUpDirectory`, `CreateMainDirTree`**: file plumbing for HL7-style tests.
+- **Auto-properties**: `MainDir`, `HL7InputDir`, `HL7OutputDir`, `HL7WorkDir`, `HL7ArchiveDir`, `MachineName`, `InstanceName`, `DSNToSamples`, `DSNToUser`, `BaseLogId`, `LastLogId`.
+- **`CheckEnvironment`**: refuses to compile if the namespace is not Interop/HealthShare-enabled (catches setup errors early).
+
+### Required parameters
+
+```objectscript
+Class My.Tests.X Extends %UnitTest.TestProduction
+{
+Parameter PRODUCTION = "My.Production";   ; required by the superclass
+}
+```
+
+### When the production is managed externally
+
+The superclass's auto-lifecycle (start → run for MINRUN seconds → CheckResults → stop) is opt-in. When the production is already running externally (typical in dev sessions and shared CI), **override `TestControl()` to a no-op** and seed `BaseLogId` manually:
+
+```objectscript
+Method TestControl() As %Status
+{
+    Quit $$$OK
+}
+
+Method OnBeforeAllTests() As %Status
+{
+    // Capture log baseline because we skipped StartProduction
+    &sql(SELECT NVL(MAX(ID),0) INTO :tMax FROM Ens_Util.Log)
+    Set ..BaseLogId = tMax + 1
+    Set ..LastLogId = ..BaseLogId
+    Quit $$$OK
+}
+```
+
+Without this override, every `Run()` would restart the production — slow and disruptive.
+
+## When to invoke this skill
+
+- The user says "vamos a hacer un DTL / routing rule / BO / BPL".
+- The user asks "cómo pruebo esto" / "cómo valido".
+- A new Interop component is being proposed or modified.
+- A bug fix on existing Interop logic — even more important: write the regression test first.
+
+If the conversation is purely about wiring components into a production (production XML edits, settings), this skill doesn't apply — see `production-lifecycle`.
+
+## The non-negotiable workflow
+
+```
+1. SPEC           Write the spec in one or two sentences in the conversation.
+2. TEST           Author Test* methods in a `%UnitTest.TestProduction` subclass, one per spec clause.
+3. RED            Run the runner via `do ##class(My.Tests.X).Run()`. Confirm failures.
+4. IMPLEMENT      Write the minimum DTL/rule/BO method to satisfy the tests.
+5. GREEN          Run the runner. All tests pass.
+6. REFACTOR       Simplify with green tests as the safety net. Re-run.
+```
+
+Stepping over 1-2-3 ("just write the DTL first") is the most common anti-pattern. Refuse it:
+
+> "I'll write the test first. It defines what 'done' means, and we'll know we're done when it passes."
+
+## What's testable in IRIS Interop — decision table
+
+| Component | Test approach |
+|---|---|
+| **Persistent message class** | TestProduction class with Test* methods that instantiate, set properties, `%Save()`, query back, assert on serialization. |
+| **Data Transform (DTL)** | Test* methods that call `##class(My.DT.X).Transform(srcObj, .tgtObj)` directly and assert on `tgtObj`. No production lifecycle needed — but still extend TestProduction (free `Run()`/helpers). |
+| **Routing rule (`Ens.Rule.Definition`)** | Two valid styles: **(a) Integration** — drive the actual Router config item via `..SendRequest("Router.Censo", msg, .resp, 0)` and assert via `..GetEventLog(...)` for downstream config-name dispatch. **(b) Unit** — construct `EnsLib.MsgRouter.RoutingEngine.Context`, call `Ens.Rule.Definition.EvaluateRules(...)`, assert on returned actions. (a) catches more real bugs (DTL chain, BO availability), (b) is faster but more brittle to API drift. |
+| **Custom BO method** | Drive the BO **with its real adapter** against a real test endpoint (test DB schema, test file dir, test TCP listener). Two modes: **(a)** `..SendRequest("BO.Cocina", req, .resp, 1)` against the running production, assert via `..GetEventLog` or direct SQL on the side-effect store. **(b)** Instantiate the BO with explicit settings + call its real `OnInit()` + invoke the method directly (more setup, but works without a running production). Never stub the adapter — see pitfall below. |
+| **BO `OnInit`/settings validation** | Test* method invokes `..OnInit()` on a manually-wired BO instance with adapter settings matching production XML. |
+| **BPL Business Process** | `..SendRequest("BP.MyProcess", req, .resp, 1)` against the running production (with `TestingEnabled="true"`). Inspect side-effects via `..GetEventLog` or `Ens.MessageHeader`. |
+| **End-to-end inside production (BS→BP→BO chain)** | Same: `..SendRequest` to the entry point (BP, BO, or Router), assert on side-effects. |
+| **Business Service (entry point)** | **Not testable from inside IRIS.** Test from *outside*: copy a file into the BS's `FilePath`, send TCP to its port, POST to its REST URL. Use `pytest`, `curl`, or equivalent external clients. The BS adapter is the contract; it must be exercised via its actual transport. |
+| **Custom inbound adapter** | Same as BS — exercise from outside. |
+
+## Where to store the tests
+
+`MyApp.Tests.*` package, compiled in the namespace alongside `MyApp.*`. Source-controlled in Git (VS Code ObjectScript export or `$system.OBJ.Export`). With `%UnitTest.TestProduction.Run()` you don't need `^UnitTestRoot` or `/noload` — invoke directly by class name.
+
+## Canonical skeletons (USE THESE AS TEMPLATES)
+
+### DTL test
+
+```objectscript
+Class MyApp.Tests.DT.Censo2Menus Extends %UnitTest.TestProduction
+{
+
+Parameter PRODUCTION = "MyApp.Production";
+
+Method TestControl() As %Status { Quit $$$OK }   ; production managed externally
+
+Method TestApellidosConcat()
+{
+    Set src = ##class(MyApp.RecordMap.Censo.Record).%New()
+    Set src.Apellido1 = "Pérez"
+    Set src.Apellido2 = "López"
+    Set src.Nombre = "Carlos"  Set src.Dieta = "Basal"  Set src.FechaNacimiento = "01/01/1970"
+    Set tSC = ##class(MyApp.DT.Censo2Menus).Transform(src, .tgt)
+    Do $$$AssertStatusOK(tSC)
+    Do $$$AssertEquals(tgt.Apellidos, "Pérez López", "Apellidos with single space")
+}
+
+Method TestFechaInvalidaSeAisla()
+{
+    Set src = ##class(MyApp.RecordMap.Censo.Record).%New()
+    Set src.FechaNacimiento = "32/13/1990"
+    Set src.Nombre = "X"  Set src.Apellido1 = "Y"  Set src.Dieta = "Basal"
+    Set tSC = ##class(MyApp.DT.Censo2Menus).Transform(src, .tgt)
+    Do $$$AssertStatusNotOK(tSC, "Bad date must error out")
+}
+
+}
+```
+
+Run: `do ##class(MyApp.Tests.DT.Censo2Menus).Run()`.
+
+### Routing rule test (integration style — preferred)
+
+```objectscript
+Class MyApp.Tests.Rule.RoutingCenso Extends %UnitTest.TestProduction
+{
+
+Parameter PRODUCTION = "MyApp.Production";
+
+Method TestControl() As %Status { Quit $$$OK }
+
+Method OnBeforeAllTests() As %Status
+{
+    &sql(SELECT NVL(MAX(ID),0) INTO :tMax FROM Ens_Util.Log)
+    Set ..BaseLogId = tMax + 1, ..LastLogId = ..BaseLogId
+    Quit $$$OK
+}
+
+Method TestRouterDispatchaACocina()
+{
+    Set rec = ##class(MyApp.RecordMap.Censo.Record).%New()
+    Set rec.ID = "TEST-RULE-1"  ; prefix for cleanup
+    ; ... fill the rest of the record fields ...
+    Do $$$AssertStatusOK(rec.%Save())
+
+    Set baseId = ..LastLogId
+    Do $$$AssertStatusOK(..SendRequest("Router.Censo", rec, .resp, 0))
+    Hang 2  ; async settle
+
+    Kill Log
+    Do ..GetEventLog("info", "BO.Cocina", baseId, .Log, .new)
+    Set tFound = 0
+    For i=1:1:$G(Log) { If Log(i,"Text") [ "TEST-RULE-1" Set tFound = 1 Quit }
+    Do $$$AssertTrue(tFound, "TEST-RULE-1 dispatched to BO.Cocina")
+}
+
+}
+```
+
+### BO method test (integration with real adapter)
+
+```objectscript
+Class MyApp.Tests.BO.Menus2Cocina Extends %UnitTest.TestProduction
+{
+
+Parameter PRODUCTION = "MyApp.Production";
+
+Method TestControl() As %Status { Quit $$$OK }
+
+Method OnBeforeAllTests() As %Status
+{
+    &sql(SELECT NVL(MAX(ID),0) INTO :tMax FROM Ens_Util.Log)
+    Set ..BaseLogId = tMax + 1, ..LastLogId = ..BaseLogId
+    Quit $$$OK
+}
+
+Method ExpectInsertLogged(pBaseId, pPacienteId, pDesc)
+{
+    Kill Log
+    Do ..GetEventLog("info", "BO.Cocina", pBaseId, .Log, .new)
+    Set tFound = 0
+    For i=1:1:$G(Log) {
+        If Log(i,"Text") [ ("INSERT OK paciente_id="_pPacienteId) Set tFound = 1 Quit
+    }
+    Do $$$AssertTrue(tFound, pDesc)
+}
+
+Method TestEmptyAlergiasToNull()
+{
+    ; Catches marshalling bugs that no stub would: does the real JDBC driver
+    ; translate "" to SQL NULL, or to empty string?
+    Set req = ##class(MyApp.Msg.MenuRequest).%New()
+    Set req.PacienteId = "TEST-EMPTY"
+    Set req.Nombre = "X"  Set req.Apellidos = "Y"  Set req.TipoDieta = "Basal"
+    Set req.Alergias = ""
+    Do $$$AssertStatusOK(req.%Save())
+
+    Set baseId = ..LastLogId
+    Do $$$AssertStatusOK(..SendRequest("BO.Cocina", req, .resp, 0))
+    Hang 2
+
+    Do ..ExpectInsertLogged(baseId, "TEST-EMPTY", "INSERT OK logged for TEST-EMPTY")
+}
+
+}
+```
+
+### BPL via Testing Service
+
+```objectscript
+Class MyApp.Tests.BPL.MyProcess Extends %UnitTest.TestProduction
+{
+
+Parameter PRODUCTION = "MyApp.Production";
+
+Method TestControl() As %Status { Quit $$$OK }
+
+Method OnBeforeAllTests() As %Status
+{
+    &sql(SELECT NVL(MAX(ID),0) INTO :tMax FROM Ens_Util.Log)
+    Set ..BaseLogId = tMax + 1, ..LastLogId = ..BaseLogId
+    Quit $$$OK
+}
+
+Method TestProcessReceivesAndForwards()
+{
+    Set req = ##class(MyApp.Msg.SomeRequest).%New()
+    Set req.Field = "value"
+    Do $$$AssertStatusOK(..SendRequest("BP.MyProcess", req, .resp, 1, 30))
+    ; SendRequest with GetReply=1 waits for the response. Resp is now populated.
+    Do $$$AssertEquals($IsObject(resp), 1, "Got a response back")
+}
+
+}
+```
+
+## Enabling the Testing Service on a production
+
+Add `TestingEnabled="true"` to the `<Production>` opening tag in the `XData ProductionDefinition`:
+
+```xml
+XData ProductionDefinition
+{
+<Production Name="MyApp.Production" TestingEnabled="true" LogGeneralTraceEvents="false">
+  ...
+</Production>
+}
+```
+
+Effect:
+- The IRIS Management Portal exposes a "Testing Service" page (under Interoperability) for manual dispatch of test messages to any BP or BO. Requires `%Ens_TestingService:USE` resource.
+- Programmatic: `..SendRequest(...)` and `EnsLib.Testing.Service.SendTestRequest(...)` both work when the production is running with this flag.
+- Internally: a hidden `EnsLib.Testing.Process` is registered and dispatches the wrapped `EnsLib.Testing.Request` to the target via `SendRequestAsync`.
+
+**Important — security**: `TestingEnabled="true"` is a development setting. **Never deploy a production to prod with this flag on** — anyone with the Testing resource can fabricate messages into running BPs/BOs. Strip it (or guard via a deployment-time setting) before promoting.
+
+## Running the tests
+
+Primary: directly on the class via the inherited `Run()`.
+
+```objectscript
+do ##class(MyApp.Tests.DT.Censo2Menus).Run()
+do ##class(MyApp.Tests.Rule.RoutingCenso).Run()
+do ##class(MyApp.Tests.BO.Menus2Cocina).Run()
+```
+
+For runner mechanics — the `^UnitTestRoot` directory requirement, `DebugRunTestCase` qualifier syntax (boolean flags only), the MCP-friendly SqlProc wrapper that returns `passed=N failed=M`, how to read `^UnitTest.Result`, and the `Try / Catch + Quit` pitfall — see **`unit-tests`**. That skill is the framework toolbox; this one is the workflow.
+
+After running, **always print the portal URL** as the last line of test output so the user can drill into per-assert detail. URL pattern and the navigation chain are also in `unit-tests`.
+
+## Error-handling idiom inside test helpers
+
+When test setup / teardown / fixture-builder code drops to ObjectScript, use the standard try/catch idiom — same pattern used in production code so failures surface uniformly. Pattern (and the `Quit` inside `Try` pitfall) is documented once in `unit-tests`.
+
+## Timeout precedence when testing flows end-to-end
+
+When a test calls a BP that calls a BO, the **timeouts must be ordered correctly** for diagnostics to come back. If the BP times out before its downstream BO, the test sees a generic timeout with no chain. If the BO times out first, the BP gets the failure with full diagnostic detail.
+
+When writing the test:
+
+- Set the BO `Response Timeout` to the realistic upper bound of the work it does.
+- Set the calling BP timeout strictly higher than the sum of downstream BO timeouts plus margin.
+- Set the test's `..SendRequest(..., timeout)` higher than the BP timeout.
+
+If a test fails with "timeout" but the visual trace shows the BO never failed, the BP timed out first — increase the BP timeout, not the test's.
+
+See `business-operations` and `bpl` for the runtime side of the same rule.
+
+## Pitfalls specific to Interop TDD
+
+- **Extending `%UnitTest.TestCase` instead of `%UnitTest.TestProduction`** — you lose `Run()`, `SendRequest`, `GetEventLog`, etc., and end up reinventing them with `$$$EnsRuntimeAppData` polling and embedded SQL. Don't.
+- **Stubbing the adapter in BO tests.** In conventional software you'd unit-test the BO method with a mocked adapter — in IRIS Interop that's an anti-pattern. The adapter boundary is exactly where the defects you care about live (auth, classpath, type marshalling, encoding, timeouts). Stubs make the test green while the real thing breaks. Use a real adapter against a real test endpoint.
+- **Forgetting to override `TestControl()`** — TestProduction will start/stop your production every time you `Run()`. Override to no-op when the production is managed externally.
+- **Forgetting to seed `..BaseLogId`** — `GetEventLog` returns nothing if `BaseLogId` is empty. Seed it in `OnBeforeAllTests` from `MAX(ID) FROM Ens_Util.Log`.
+- **Asserting on internal state** instead of public contract. Assert on what the next consumer (DTL, BO, downstream system) actually sees.
+- **No fixture strategy** — paste-in literals everywhere. Centralize sample inputs in a fixtures class (`MyApp.Tests.Fixtures.Censo`).
+- **`TestingEnabled="true"` left in a deployed production** — security/integrity risk. Treat it like a debug flag. (Note: `TestingEnabled="true"` is the **correct default** in dev/workshop productions — only flagged here for environments with deploy-to-prod automation.)
+- **Asserting only on `$$$LOGINFO` presence in the event log** ("INSERT OK paciente_id=...") instead of on the row's actual contents → the log proves the BO method ran, not that the destination has the right values. Add at least one assert that reads the side-effect back: a `SELECT` via psql/`Adapter` in `OnAfterAllTests`, or a small **verifier BO** callable via `..SendRequest(verifier, query, .resp, 1)` that returns the row for property-by-property asserts. The log is necessary but insufficient.
+
+## Test data isolation — spectrum, not all-or-nothing
+
+For shared destinations (one PostgreSQL `Cocina.Menus` table used by both prod and tests), pick the **lightest** isolation that meets your blast-radius budget:
+
+| Approach | When |
+|---|---|
+| **Prefix discipline** (`TEST-*` on PK fields) + cleanup in `OnAfterAllTests` | Workshop, dev, single-developer sessions. Lowest infra, low blast radius if tests crash mid-run. |
+| **Separate schema** in the same DB (`MenusTest`) with its own credentials | CI on shared infra, multiple devs running tests concurrently. |
+| **Separate DB / credentials / BO item** (`CocinaTest`, `BO.CocinaTest`) | Production-grade CI with isolation requirements (e.g. test data must never bleed into prod backups). |
+
+Default to **prefix** unless you have a concrete reason to escalate. Auditing a workshop production for "weak isolation" because it uses prefix-only is misreading the spectrum.
+
+## See also
+
+- `messages` — design the contract before the tests
+- `transformations` — DTL implementation reference (after the test exists)
+- `business-operations` — keep BO methods thin so they're testable
+- `bpl` — BPL Business Processes (test via Testing Service)
+- `message-search-debug` — for inspecting Visual Trace after a Testing Service dispatch
+- `unit-tests` — runner mechanics (`Run()`, `DebugRunTestCase`, SqlProc wrapper, qualifier syntax), `^UnitTest.Result` global, the `%UnitTest.Portal` URL, where to store tests so they survive. **This skill is the workflow; that one is the toolbox.**
+
+## TL;DR
+
+```
+Test classes:   extend %UnitTest.TestProduction (never plain TestCase).
+Parameter:      PRODUCTION = "MyApp.Production"
+Lifecycle:      override TestControl() to no-op if production runs externally; seed ..BaseLogId in OnBeforeAllTests.
+Dispatch:       ..SendRequest(configName, req, .resp, getReply, timeout)
+Inspect:        ..GetEventLog(type, configName, baseId, .Log, .new)
+Run:            do ##class(MyApp.Tests.X).Run()
+
+Spec → Test → Red → Implement → Green → Refactor.
+BS: from outside IRIS only (file drop, TCP, curl).
+TestingEnabled="true" on production for dev; strip before deploy.
+```

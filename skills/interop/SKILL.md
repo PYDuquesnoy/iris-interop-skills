@@ -1,0 +1,143 @@
+---
+name: interop
+description: Router/index for IRIS For Health Interoperability work. Use when the user is building a production, defining components (BS/BP/BO), HL7 messaging, transformations, or asks anything that mentions InterSystems Interoperability, IRIS for Health, Ensemble, HealthConnect. Triggers: producción, integración, mensajería HL7, transformación. ALWAYS load `tdd` as a companion skill in the same turn whenever the user proposes building or modifying ANY Interop component (BS/BP/BO/DTL/Rule/Message class), even if they don't mention tests or TDD. TDD is the default workflow, not opt-in.
+---
+
+# IRIS Interoperability — Skill Router
+
+This skill is an index. Its job is to point Claude at the right sibling skill, enforce the load-bearing **messages-first** principle, and carry the project-wide conventions (naming, reserved packages, namespace strategy, config precedence) that apply to every other skill.
+
+## Load-bearing principle: messages first
+
+In IRIS Interoperability, **messages are the foundational building block**. They are the parameters of Business Processes and Business Operations, and the response types of Business Services. Design and create messages **before** authoring BS/BP/BO. If the user asks to "build a service" without a message class in mind, stop and design the message first using `messages`.
+
+A message in IRIS is one of:
+- `EnsLib.HL7.Message` (HL7 v2.x — pre-built, never subclass for storage)
+- A persistent class extending **both** `Ens.Request` (or `Ens.Response`) **and** `%Persistent` — gives the message its own storage location separate from `Ens.MessageBodyD`.
+- A `%SerialObject`-based payload (typical for SOAP-wizard-generated messages used as request properties).
+
+## Naming convention — every class, every component
+
+All ObjectScript classes and production components follow:
+
+```
+<Package>.<TipoComponente>.<NombreComponente>
+```
+
+Recommended total length ≤ 45 characters (longer names are silently truncated by some Portal screens).
+
+| Component type | Sub-package | Note |
+|---|---|---|
+| Business Service | `.BS` | |
+| Business Process | `.BP` | |
+| Business Operation | `.BO` | |
+| Data Transformation | `.DT` | Name `<TipoMsgIn>To<TipoMsgOut>` — the DataTransform Wizard suggestions key off this pattern |
+| Sub-Transformation | `.DTS` | |
+| Message | `.MSG.<Name>{Req|Rsp}` | |
+| Business Rule | `.RUL` | |
+| Internal data classes (`%SerialObject`) | `.DAT` | |
+| Custom Adapter | `.ADP` | |
+| Utility / FunctionSet | `.UTL` | |
+| Custom HL7 schema (programmatic) | `.HL7` | |
+
+For **generated SOAP / XSD code**, put each generated set in its own sub-package so it can be deleted and regenerated cleanly:
+
+| Component | Sub-package |
+|---|---|
+| Generated SOAP client root + proxy | `<Pkg>.<SubPkg>.WSC<Name>` |
+| Generated server-side WS class | `<Pkg>.<SubPkg>.WS<Name>` |
+| Generated BO (from wizard) | `<Pkg>.<SubPkg>.WSC<Name>.BO` |
+| Generated request message | `<Pkg>.<SubPkg>.WSC<Name>.REQ` |
+| Generated response message | `<Pkg>.<SubPkg>.WSC<Name>.RSP` |
+
+The production component's `Category` attribute MUST equal the package root (case-insensitive). This drives both deployment tooling and the visual filter in the portal.
+
+**Why** the discipline matters: without it, production gets clobbered on deploy, patched system classes get lost on IRIS upgrade, DataTransform-Wizard auto-suggestions break, and exported bundles miss dependencies.
+
+**Production Item Name** follows `<Tipo>.<Nombre>` (`BS.Census`, `BO.SQL`, `Router.Census`, `Util.JDBCGateway`, fixed `Ens.Alerts`). Items whose name breaks the pattern (`Java.Gateway`, `Censo`, `myBS`) get renamed before merge — cosmetic but it affects portal grouping, search, and category-level operations.
+
+## Reserved package names
+
+Some package names are reserved for cross-cutting concerns. Do not put domain classes in them.
+
+| Package | Purpose | Special handling |
+|---|---|---|
+| `Alt` | System classes that had to be patched | Re-test on every IRIS/Ensemble upgrade — the patched version may need to be reapplied. |
+| `<Customer>NoExport` | Production class + site-config table | MUST NEVER be deployed across sites — name signals "stays in the source environment". |
+| `INFRAESTRUCTURA` | System management classes | |
+| `SOAPENC` | Auto-generated SOAP encoding side classes | Do not edit; regenerated on WSDL re-import. |
+
+## When to split into multiple namespaces / productions
+
+Drivers for splitting an estate (vs. a single `INTEROP` namespace with categories per integration):
+
+1. **Ownership / RBAC** — different teams own different productions.
+2. **Tech-stack churn** — FHIR in its own namespace as STU3 → R4 evolves; OAuth wizard regeneration isolated.
+3. **Security boundary** — external integrations isolated from internal ones for tighter access control.
+4. **Regulatory boundary** — data-residency or differential-audit requirements.
+
+Both shapes (split or consolidated) are valid. Consolidation simplifies deployment at the cost of weaker access boundaries. Do **not** split for cosmetic reasons — every split adds its own monitor, alert circuit, settings, source-control branch, and deploy pipeline.
+
+Detailed migration patterns, the deployment tool, and the multi-environment configuration strategy live in `production-lifecycle`.
+
+## Configuration source precedence — the four levels
+
+Production component settings can come from four levels. Pick the level deliberately:
+
+| Order (low → high) | Portal colour | Source | Use for |
+|---|---|---|---|
+| 1 | green | Class property `InitialExpression` | Sensible defaults that almost never change (`Timeout = 10`) |
+| 2 | black | Production XML `<Setting>` | Values identical across all environments (travel with the export) |
+| 3 | blue | System Default Settings | Values that **differ** per environment (URLs, hostnames, credentials) |
+| (advanced) | — | Registry | Rarely used |
+
+**Visual cue at deploy time**: verify each per-environment setting shows **blue** in the portal after deploy. Black means hard-coded in the production XML and the same in every environment.
+
+System Default Settings are the **only** layer that does NOT migrate via a production XML deploy. Mis-classify a setting and a deploy clobbers production with the source environment's value.
+
+## Sibling skill index
+
+| If the user is doing… | Load this skill |
+|---|---|
+| Designing the message class itself (HL7, persistent, SOAP) | `messages` |
+| Building a Business Service (inbound: file/TCP/SOAP/REST/CSV) | `business-services` |
+| Writing a DTL or transforming HL7/CDA/XML | `transformations` |
+| Building a non-SOAP Business Operation (TCP, SQL, file, REST) | `business-operations` |
+| Building a SOAP Business Operation (wizard, WSDL gotchas, %Persistent payloads, CDA) | `soap-bo` |
+| Writing a BPL Business Process or routing rules | `bpl` |
+| Production class structure, start/stop, settings, deployment, migration | `production-lifecycle` |
+| Custom HL7 schemas, Z-segments, schema editor | `hl7-schemas` |
+| Lookup tables (creating, loading, using in DTL) | `lookup-tables` |
+| Searching messages, Visual Trace, Event Log, debugging, testing live components, SOAP tracing, purge | `message-search-debug` |
+| **FHIR work** — Façade vs Repository, OAuth2 PKCE, FHIR R4 Bundles, FHIR SQL Builder | `fhir` |
+| **Securing endpoints** — SAML 2.0 / 1.1, OAuth 2.0 server + LDAP, SSL/TLS chain, internal account hygiene | `security` |
+| **Alert circuit** — `Ens.Alert` router, dedup function set, ProductionMonitorService, per-BO alert settings | `alerting` |
+| **About to build *anything* (DTL, rule, BO method, BPL) — TDD workflow** | **`tdd`** (entry point; non-negotiable) |
+| %UnitTest framework toolbox (storage, runner flags, ^UnitTest.Result) | `unit-tests` (lower-level reference; the TDD skill calls into it) |
+| Anything DICOM (C-STORE, C-FIND, C-MOVE, MWL, STOW-RS, modalities, PACS) | `dicom` (architecture + wiring patterns; defers byte-level work to docs + vendored sample at `${CLAUDE_PLUGIN_ROOT}/BestPractices/external/workshop-iris-dicom-interop/`) |
+
+## Recommended build order
+
+For a typical end-to-end interface, work in this order — it minimises rework because later artefacts depend on earlier ones:
+
+1. **Messages** (`messages`)
+2. **Custom schemas** if needed (`hl7-schemas`)
+3. **TDD workflow** (`tdd`) — every component below has its test written BEFORE the implementation. Non-negotiable.
+4. **Business Service** (`business-services`) — entry point; testable only from outside IRIS
+5. **Transformations** (`transformations`) — DTL test → DTL impl
+6. **Business Process / routing rules** (`bpl`) — rule test → rule impl; BPL via Testing Service
+7. **Business Operation** — `business-operations` (generic) or `soap-bo` (SOAP) — BO method test → BO impl
+8. **Alert circuit** (`alerting`) — wire `Ens.Alert` router + sink BO + dedup function set; audit per-BO alert settings
+9. **Production wiring + settings** (`production-lifecycle`) — add `TestingEnabled="true"` for dev productions; choose deployment tool early
+10. **Security** (`security`) — only after components exist; SAML/OAuth/SSL added where the endpoints actually call out
+11. **Test, search, debug** (`message-search-debug`) — Visual Trace + Event Log for verifying end-to-end runs; purge task added
+
+For FHIR-specific work, replace steps 4–7 with the `fhir` decision tree (Façade vs Repository, OAuth2 PKCE setup, FHIR R4 Bundle shape).
+
+## MCP dependency
+
+The skills assume the `iris-agentic-dev` MCP server is enabled — it provides the actions for compiling classes, inspecting productions, listing messages. If MCP tools are not available in the current session, tell the user explicitly and ask them to enable iris-agentic-dev (or perform the action manually in the IRIS Management Portal).
+
+## Out of scope for this router
+
+This router does no actual implementation work. Always hand off to a sibling. If the request is ambiguous, ask the user one targeted question to disambiguate which sibling to use.

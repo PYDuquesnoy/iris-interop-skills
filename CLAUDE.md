@@ -6,18 +6,18 @@ bank under `BestPractices/`.
 
 ## Skills system
 
-When working on anything IRIS Interoperability, the `iris-interop-*` skills steer
-behaviour. They assume the **`iris-agentic-dev` MCP server** is enabled (hard dependency).
+When working on anything IRIS Interoperability, invoke the `interop` router skill.
+It assumes the **`iris-agentic-dev` MCP server** is enabled (hard dependency).
 
 **Messages are the foundational building block** — design the message class before
-BS/BP/BO. The `iris-interop` router skill enforces this and points to the right
-sibling skill for each task. Always load `iris-interop-tdd` as a companion.
+BS/BP/BO. The `interop` router skill enforces this and points to the right
+sibling skill for each task. Always load `tdd` as a companion.
 
 ## Layout
 
-- `skills/iris-interop*/SKILL.md` — the 17 skills. Each is a single `SKILL.md`.
-  The router (`iris-interop`) refers to its siblings by **skill name**
-  (e.g. `iris-interop-messages`), not by path.
+- `skills/*/SKILL.md` — the 17 skills. Each is a single `SKILL.md`.
+  The router (`interop`) refers to its siblings by **skill name**
+  (e.g. `messages`, `business-services`), not by path.
 - `BestPractices/` — the worked-example bank the skills cite:
   - `BestPractices_Interop_IRIS.md` — patterns tagged Validity/Severity.
   - `examples/` — runnable artefacts indexed in `examples/README.md`.
