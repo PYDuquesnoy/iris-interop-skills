@@ -85,7 +85,7 @@ a single self-contained binary.
 ```
 
 Then just work on IRIS interoperability tasks — the skills activate by topic.
-**Start at the `iris-interop` router skill**: it points to the right sibling skill
+**Start at the `interop` router skill**: it points to the right sibling skill
 for each task and enforces the foundational rule that you design the **message
 class first**, before BS/BP/BO.
 
@@ -99,23 +99,23 @@ Claude discovers the skills under `skills/` and the examples under
 
 | Skill | Use it for |
 |---|---|
-| `iris-interop` | **Router / index.** Start here; routes to the right skill and enforces messages-first. |
-| `iris-interop-messages` | Designing message classes (the foundational building block). |
-| `iris-interop-business-services` | Inbound Business Services (adapters, framing, schema category). |
-| `iris-interop-business-operations` | Generic (non-SOAP) Business Operations. |
-| `iris-interop-soap-bo` | SOAP Business Operations via the SOAP Wizard (and its gotchas). |
-| `iris-interop-bpl` | BPL Business Processes and routing rules. |
-| `iris-interop-transformations` | DTL data transformations, subtransforms, util functions. |
-| `iris-interop-hl7-schemas` | Custom HL7 v2.x schemas — Z-segments, custom structures. |
-| `iris-interop-lookup-tables` | Lookup tables — code maps, normalization, CSV sources. |
-| `iris-interop-fhir` | FHIR endpoints — Façade vs Repository. |
-| `iris-interop-dicom` | DICOM — C-STORE, MWL, Q/R, STOW-RS, DICOM↔HL7/FHIR. |
-| `iris-interop-alerting` | The alert circuit — `Ens.Alert` routing + dedup. |
-| `iris-interop-security` | Securing endpoints — SAML, OAuth 2.0, TLS/SSL. |
-| `iris-interop-production-lifecycle` | The production class — items, settings, deploy, restart. |
-| `iris-interop-message-search-debug` | Message search, Visual Trace, the Event Log. |
-| `iris-interop-tdd` | TDD-first workflow (companion skill — load it alongside the others). |
-| `iris-interop-unit-tests` | `%UnitTest` framework reference. |
+| `interop` | **Router / index.** Start here; routes to the right skill and enforces messages-first. |
+| `messages` | Designing message classes (the foundational building block). |
+| `business-services` | Inbound Business Services (adapters, framing, schema category). |
+| `business-operations` | Generic (non-SOAP) Business Operations. |
+| `soap-bo` | SOAP Business Operations via the SOAP Wizard (and its gotchas). |
+| `bpl` | BPL Business Processes and routing rules. |
+| `transformations` | DTL data transformations, subtransforms, util functions. |
+| `hl7-schemas` | Custom HL7 v2.x schemas — Z-segments, custom structures. |
+| `lookup-tables` | Lookup tables — code maps, normalization, CSV sources. |
+| `fhir` | FHIR endpoints — Façade vs Repository. |
+| `dicom` | DICOM — C-STORE, MWL, Q/R, STOW-RS, DICOM↔HL7/FHIR. |
+| `alerting` | The alert circuit — `Ens.Alert` routing + dedup. |
+| `security` | Securing endpoints — SAML, OAuth 2.0, TLS/SSL. |
+| `production-lifecycle` | The production class — items, settings, deploy, restart. |
+| `message-search-debug` | Message search, Visual Trace, the Event Log. |
+| `tdd` | TDD-first workflow (companion skill — load it alongside the others). |
+| `unit-tests` | `%UnitTest` framework reference. |
 
 ### Best practices & worked examples (`BestPractices/`)
 
