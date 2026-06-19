@@ -1,6 +1,6 @@
 ---
 name: business-operations
-description: BO outbound - SQL/JDBC, TCP, HTTP, REST, file. Routed from interop.
+description: BO outbound - SQL/JDBC, TCP, HTTP, REST, file. Routed from interop. Triggers: Business Operation, BO, outbound, salida, SQL/JDBC, TCP, HTTP, REST, file, OutboundAdapter, enviar datos.
 ---
 
 # Business Operations — outbound endpoints

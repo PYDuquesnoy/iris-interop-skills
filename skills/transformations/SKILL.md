@@ -1,6 +1,6 @@
 ---
 name: transformations
-description: DTL transforms, lookups, HL7 field paths, XSLT for CDA. Routed from interop.
+description: DTL transforms, lookups, HL7 field paths, XSLT for CDA. Routed from interop. Triggers: DTL, transformación, data transform, mapear, subtransform, HL7 field path, XSLT, CDA, Lookup().
 ---
 
 # Transformations — DTL, subtransforms, XSLT for CDA
