@@ -1,0 +1,33 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*__iris_execute|iris_execute",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/silent-execute-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/tdd-enforcement.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*__iris_(production|test|source_control)|iris_(production|test|source_control)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/docker-detect.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

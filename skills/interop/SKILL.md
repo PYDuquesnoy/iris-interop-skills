@@ -1,6 +1,6 @@
 ---
 name: interop
-description: Router/index for IRIS For Health Interoperability work. Use when the user is building a production, defining components (BS/BP/BO), HL7 messaging, transformations, or asks anything that mentions InterSystems Interoperability, IRIS for Health, Ensemble, HealthConnect. Triggers: producción, integración, mensajería HL7, transformación. ALWAYS load `tdd` as a companion skill in the same turn whenever the user proposes building or modifying ANY Interop component (BS/BP/BO/DTL/Rule/Message class), even if they don't mention tests or TDD. TDD is the default workflow, not opt-in.
+description: Router/index for IRIS For Health Interoperability work. Use when the user is building a production, defining components (BS/BP/BO), HL7 messaging, transformations, or asks anything that mentions InterSystems Interoperability, IRIS for Health, Ensemble, HealthConnect. Triggers: producción, integración, mensajería HL7, transformación. ALWAYS load `iris-interop-skills:tdd` as a companion skill in the same turn whenever the user proposes building or modifying ANY Interop component (BS/BP/BO/DTL/Rule/Message class), even if they don't mention tests or TDD. TDD is the default workflow, not opt-in.
 ---
 
 # IRIS Interoperability — Skill Router
@@ -9,7 +9,13 @@ This skill is an index. Its job is to point Claude at the right sibling skill, e
 
 ## Load-bearing principle: messages first
 
-In IRIS Interoperability, **messages are the foundational building block**. They are the parameters of Business Processes and Business Operations, and the response types of Business Services. Design and create messages **before** authoring BS/BP/BO. If the user asks to "build a service" without a message class in mind, stop and design the message first using `messages`.
+In IRIS Interoperability, **messages are the foundational building block**. They are the parameters of Business Processes and Business Operations, and the response types of Business Services. Design and create messages **before** authoring BS/BP/BO. If the user asks to "build a service" without a message class in mind, stop and design the message first using `iris-interop-skills:messages`.
+
+**Two exceptions — the message is *generated*, not hand-authored first:**
+1. The **SOAP Wizard** (which can be driven **programmatically**, not only from the Portal UI) generates the request/response payload classes from the WSDL — see `iris-interop-skills:soap-bo`.
+2. The **Record Mapper** and **Complex Record Mapper** generate the record message class from the CSV/fixed-width layout — see `iris-interop-skills:business-services`.
+
+In both cases the message class comes *from the generator*: don't hand-write it first. You still review it, apply the naming convention, and design any *wrapping* request/response message around the generated payload.
 
 A message in IRIS is one of:
 - `EnsLib.HL7.Message` (HL7 v2.x — pre-built, never subclass for storage)
@@ -97,24 +103,47 @@ System Default Settings are the **only** layer that does NOT migrate via a produ
 
 ## Sibling skill index
 
-| If the user is doing… | Load this skill |
+> **Invoke skills by their plugin-qualified id `iris-interop-skills:<name>`.** A bare name like
+> `Skill("interop")` or `Skill("messages")` errors with "Unknown skill" — the `Skill` tool resolves
+> only plugin-qualified leaf names.
+
+| If the user is doing… | Load this skill (call now) |
 |---|---|
-| Designing the message class itself (HL7, persistent, SOAP) | `messages` |
-| Building a Business Service (inbound: file/TCP/SOAP/REST/CSV) | `business-services` |
-| Writing a DTL or transforming HL7/CDA/XML | `transformations` |
-| Building a non-SOAP Business Operation (TCP, SQL, file, REST) | `business-operations` |
-| Building a SOAP Business Operation (wizard, WSDL gotchas, %Persistent payloads, CDA) | `soap-bo` |
-| Writing a BPL Business Process or routing rules | `bpl` |
-| Production class structure, start/stop, settings, deployment, migration | `production-lifecycle` |
-| Custom HL7 schemas, Z-segments, schema editor | `hl7-schemas` |
-| Lookup tables (creating, loading, using in DTL) | `lookup-tables` |
-| Searching messages, Visual Trace, Event Log, debugging, testing live components, SOAP tracing, purge | `message-search-debug` |
-| **FHIR work** — Façade vs Repository, OAuth2 PKCE, FHIR R4 Bundles, FHIR SQL Builder | `fhir` |
-| **Securing endpoints** — SAML 2.0 / 1.1, OAuth 2.0 server + LDAP, SSL/TLS chain, internal account hygiene | `security` |
-| **Alert circuit** — `Ens.Alert` router, dedup function set, ProductionMonitorService, per-BO alert settings | `alerting` |
-| **About to build *anything* (DTL, rule, BO method, BPL) — TDD workflow** | **`tdd`** (entry point; non-negotiable) |
-| %UnitTest framework toolbox (storage, runner flags, ^UnitTest.Result) | `unit-tests` (lower-level reference; the TDD skill calls into it) |
-| Anything DICOM (C-STORE, C-FIND, C-MOVE, MWL, STOW-RS, modalities, PACS) | `dicom` (architecture + wiring patterns; defers byte-level work to docs + vendored sample at `${CLAUDE_PLUGIN_ROOT}/BestPractices/external/workshop-iris-dicom-interop/`) |
+| Designing the message class itself (HL7, persistent, SOAP) | `iris-interop-skills:messages` |
+| Building a Business Service (inbound: file/TCP/SOAP/REST/CSV) | `iris-interop-skills:business-services` |
+| Writing a DTL or transforming HL7/CDA/XML | `iris-interop-skills:transformations` |
+| Building a non-SOAP Business Operation (TCP, SQL, file, REST) | `iris-interop-skills:business-operations` |
+| Building a SOAP Business Operation (wizard, WSDL gotchas, %Persistent payloads, CDA) | `iris-interop-skills:soap-bo` |
+| Writing a BPL Business Process or routing rules | `iris-interop-skills:bpl` |
+| Production class structure, start/stop, settings, deployment, migration | `iris-interop-skills:production-lifecycle` |
+| Custom HL7 schemas, Z-segments, schema editor | `iris-interop-skills:hl7-schemas` |
+| Lookup tables (creating, loading, using in DTL) | `iris-interop-skills:lookup-tables` |
+| Searching messages, Visual Trace, Event Log, debugging, testing live components, SOAP tracing, purge | `iris-interop-skills:message-search-debug` |
+| **FHIR work** — Façade vs Repository, OAuth2 PKCE, FHIR R4 Bundles, FHIR SQL Builder | `iris-interop-skills:fhir` |
+| **Securing endpoints** — SAML 2.0 / 1.1, OAuth 2.0 server + LDAP, SSL/TLS chain, internal account hygiene | `iris-interop-skills:security` |
+| **Alert circuit** — `Ens.Alert` router, dedup function set, ProductionMonitorService, per-BO alert settings | `iris-interop-skills:alerting` |
+| **About to build *anything* (DTL, rule, BO method, BPL) — TDD workflow** | **`iris-interop-skills:tdd`** (entry point; non-negotiable) |
+| %UnitTest framework toolbox (storage, runner flags, ^UnitTest.Result) | `iris-interop-skills:unit-tests` (lower-level reference; the TDD skill calls into it) |
+| Anything DICOM (C-STORE, C-FIND, C-MOVE, MWL, STOW-RS, modalities, PACS) | `iris-interop-skills:dicom` (architecture + wiring patterns; defers byte-level work to docs + vendored sample at `${CLAUDE_PLUGIN_ROOT}/BestPractices/external/workshop-iris-dicom-interop/`) |
+
+## Exact routing — call these now (don't just describe them)
+
+Loading this router is **not** enough: you must issue the actual `Skill(...)` calls for the components
+in play, as soon as you recognise the work — not after you start coding. When several components are
+involved, issue several `Skill(...)` calls in the same turn.
+
+- Building/modifying **ANY** component (BS/BP/BO/DTL/Rule/Message class) → also call
+  `Skill(iris-interop-skills:tdd)` in the same turn (TDD is the default workflow, not opt-in).
+- Designing a message → `Skill(iris-interop-skills:messages)` **first** (messages-first principle).
+- Business Service / inbound (file, CSV/RecordMap, TCP, REST, SOAP) → `Skill(iris-interop-skills:business-services)`.
+- DTL / transformation → `Skill(iris-interop-skills:transformations)`.
+- Routing rule / MessageRouter / BPL → `Skill(iris-interop-skills:bpl)`.
+- Non-SOAP Business Operation → `Skill(iris-interop-skills:business-operations)`; SOAP BO → `Skill(iris-interop-skills:soap-bo)`.
+- Production class / start-stop / settings / deploy → `Skill(iris-interop-skills:production-lifecycle)`.
+- Custom HL7 schema → `Skill(iris-interop-skills:hl7-schemas)`; lookup tables → `Skill(iris-interop-skills:lookup-tables)`.
+- Searching/debugging live messages → `Skill(iris-interop-skills:message-search-debug)`.
+- FHIR → `Skill(iris-interop-skills:fhir)`; endpoint security → `Skill(iris-interop-skills:security)`;
+  alert circuit → `Skill(iris-interop-skills:alerting)`; DICOM → `Skill(iris-interop-skills:dicom)`.
 
 ## Recommended build order
 
@@ -136,7 +165,7 @@ For FHIR-specific work, replace steps 4–7 with the `fhir` decision tree (Faça
 
 ## MCP dependency
 
-The skills assume the `iris-agentic-dev` MCP server is enabled — it provides the actions for compiling classes, inspecting productions, listing messages. If MCP tools are not available in the current session, tell the user explicitly and ask them to enable iris-agentic-dev (or perform the action manually in the IRIS Management Portal).
+The skills assume an IRIS MCP server is enabled — either `iris-agentic-dev` (the original) or the streamlined `iris-interop-dev` fork; tool names are identical, so either works. It provides the actions for compiling classes, inspecting productions, listing messages. If MCP tools are not available in the current session, tell the user explicitly and ask them to enable one (or perform the action manually in the IRIS Management Portal).
 
 ## Out of scope for this router
 

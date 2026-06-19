@@ -1,6 +1,6 @@
 ---
 name: message-search-debug
-description: Visual Trace, Event Log, message search, debug. Routed from interop.
+description: Visual Trace, Event Log, message search, debug. Routed from interop. Triggers: Message Viewer, Visual Trace, Event Log, message search, buscar mensaje, depurar, debug, resend, reenviar, troubleshoot, traza.
 ---
 
 # Message Search & Debug

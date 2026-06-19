@@ -1,6 +1,6 @@
 ---
 name: dicom
-description: DICOM C-STORE/FIND/MOVE, MWL, PACS, STOW-RS. Routed from interop.
+description: DICOM C-STORE/FIND/MOVE, MWL, PACS, STOW-RS. Routed from interop. Triggers: DICOM, C-STORE, C-FIND, C-MOVE, MWL, PACS, STOW-RS, DICOMweb, modality, AE Title, EnsLib.DICOM.
 ---
 
 # DICOM on IRIS for Health

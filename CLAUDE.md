@@ -7,17 +7,24 @@ bank under `BestPractices/`.
 ## Skills system
 
 When working on anything IRIS Interoperability, invoke the `interop` router skill.
-It assumes the **`iris-agentic-dev` MCP server** is enabled (hard dependency).
+It assumes an IRIS MCP server (e.g. **`iris-agentic-dev`** or the streamlined **`iris-interop-dev`** fork) is enabled (hard dependency). Tool names are identical, so the skills work with either.
 
 **Messages are the foundational building block** — design the message class before
-BS/BP/BO. The `interop` router skill enforces this and points to the right
-sibling skill for each task. Always load `tdd` as a companion.
+BS/BP/BO (except when the SOAP Wizard or the Record/Complex Record Mapper *generates*
+the message). The `interop` router skill enforces this and points to the right
+sibling skill for each task. Always load `iris-interop-skills:tdd` as a companion.
 
 ## Layout
 
 - `skills/*/SKILL.md` — the 17 skills. Each is a single `SKILL.md`.
-  The router (`interop`) refers to its siblings by **skill name**
-  (e.g. `messages`, `business-services`), not by path.
+  The router (`interop`) refers to its siblings by their **plugin-qualified id**
+  `iris-interop-skills:<name>` (e.g. `iris-interop-skills:messages`), not by bare
+  name or path — a bare `Skill("messages")` errors with "Unknown skill".
+- `agents/*.md` — three bundled subagents (`interop-builder`, `deploy-smoke-test`,
+  `introspect-dont-guess`) that auto-register on install. MCP-server-agnostic (no server pinned).
+- `hooks/` — two PostToolUse hooks (silent-execute guard, TDD enforcement) auto-enabled via `plugin.json`.
+- **Required user setting:** raise the skill-listing budget (`skillListingBudgetFraction: 0.03`,
+  `skillListingMaxDescChars: 2048`) in `~/.claude/settings.json` so `interop`/`tdd` don't get evicted.
 - `BestPractices/` — the worked-example bank the skills cite:
   - `BestPractices_Interop_IRIS.md` — patterns tagged Validity/Severity.
   - `examples/` — runnable artefacts indexed in `examples/README.md`.

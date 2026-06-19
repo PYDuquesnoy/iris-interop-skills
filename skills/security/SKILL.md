@@ -1,6 +1,6 @@
 ---
 name: security
-description: SAML, OAuth, SSL/TLS, LDAP, ZAUTHENTICATE. Routed from interop.
+description: SAML, OAuth, SSL/TLS, LDAP, ZAUTHENTICATE. Routed from interop. Triggers: SAML, OAuth 2.0, OAuth, SSL/TLS, certificate, LDAP, ZAUTHENTICATE, PKCE, seguridad, autenticación, certificado.
 ---
 
 # Security on IRIS Interop endpoints
