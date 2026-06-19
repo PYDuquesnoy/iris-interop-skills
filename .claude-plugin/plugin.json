@@ -17,6 +17,5 @@
     "dicom",
     "healthcare",
     "ensemble"
-  ],
-  "hooks": "./hooks/hooks.json"
+  ]
 }
