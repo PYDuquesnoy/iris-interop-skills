@@ -202,7 +202,7 @@ Raise the budget in your **own** settings — `~/.claude/settings.json` (user) o
 
 ## Hooks
 
-Two `PostToolUse` hooks ship in `hooks/` and auto-enable when the plugin is installed (wired via
+Three `PostToolUse` hooks ship in `hooks/` and auto-enable when the plugin is installed (wired via
 `hooks/hooks.json`, referenced from `plugin.json`). Both are **advisory** (they never block) and
 need **python3** on PATH; if python3 is absent they degrade to a no-op.
 
@@ -210,6 +210,7 @@ need **python3** on PATH; if python3 is absent they degrade to a no-op.
 |---|---|---|
 | `silent-execute-guard` | `iris_execute` returning empty output (`success:true`, no captured output) | Reminds that HTTP CodeMode returns only what you `write`; wrap side-effecting code as a `[SqlProc]` and SELECT it, or verify with `iris_query`. |
 | `tdd-enforcement` | `Write`/`Edit` of a `*.BO.*` / `*.BP.*` / `*DTL*` / `*Rule*` `.cls` with no sibling `*Test*.cls` | Reminds to write the test first (spec → test → red → implement → green; tests extend `%UnitTest.TestProduction`). |
+| `docker-detect` | An interop tool returns `DOCKER_REQUIRED` | Reminds that the instance is native/remote — the tools work over HTTP; retry without `IRIS_CONTAINER`. |
 
 Not installing as a plugin? Add the equivalent `hooks` block to your `settings.json`, pointing at
 the `hooks/*.sh` wrappers.
