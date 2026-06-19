@@ -130,6 +130,54 @@ Claude discovers the skills under `skills/` and the examples under
 All customer-identifying provenance has been removed from this public edition;
 the patterns are vendor-neutral.
 
+## Skill-listing budget (required user setting)
+
+Claude Code reserves a slice of context (default ~1%) to inject each skill's **name +
+description** into the system prompt. With many skills, or long descriptions, that budget
+**overflows** and descriptions get truncated to the name — so the `interop` router and `tdd`
+(the two longest, the ones carrying the routing and mandatory-companion rules) can drop out of
+the listing and **stop auto-triggering**.
+
+Raise the budget in your **own** settings — `~/.claude/settings.json` (user) or
+`.claude/settings.json` (project):
+
+```json
+{
+  "skillListingBudgetFraction": 0.03,
+  "skillListingMaxDescChars": 2048
+}
+```
+
+> The `settings.json` at the **root of this repo** records the recommended values, but a
+> plugin-repo settings file is **not** auto-applied to end users — you must copy these two keys
+> into your own settings. (Contrast with the hooks below, which *do* auto-enable on install.)
+
+## Hooks
+
+Two `PostToolUse` hooks ship in `hooks/` and auto-enable when the plugin is installed (wired via
+`hooks/hooks.json`, referenced from `plugin.json`). Both are **advisory** (they never block) and
+need **python3** on PATH; if python3 is absent they degrade to a no-op.
+
+| Hook | Fires on | What it does |
+|---|---|---|
+| `silent-execute-guard` | `iris_execute` returning empty output (`success:true`, no captured output) | Reminds that HTTP CodeMode returns only what you `write`; wrap side-effecting code as a `[SqlProc]` and SELECT it, or verify with `iris_query`. |
+| `tdd-enforcement` | `Write`/`Edit` of a `*.BO.*` / `*.BP.*` / `*DTL*` / `*Rule*` `.cls` with no sibling `*Test*.cls` | Reminds to write the test first (spec → test → red → implement → green; tests extend `%UnitTest.TestProduction`). |
+
+Not installing as a plugin? Add the equivalent `hooks` block to your `settings.json`, pointing at
+the `hooks/*.sh` wrappers.
+
+## Decision log
+
+- **Skill names are bare** (`tdd`, `messages`, …) and internally consistent — directory name =
+  frontmatter `name:` = the router's references. The `iris-interop-tdd → tdd` rename (commit
+  `c6da096`) created **no** dangling-reference bug; `iris-interop-skills:tdd` is the correct id.
+- The real regressions that rename-commit introduced were: (a) it **shortened the 15 sibling
+  descriptions** to ~70-char stubs, stripping their trigger keywords (restored here, bilingual
+  ES/EN); and (b) the **bare-vs-qualified invocation trap** — `Skill("interop")` errors with
+  "Unknown skill" while `Skill("iris-interop-skills:interop")` works (the router + CLAUDE.md now
+  always use the qualified id, and the router lists the exact `Skill(...)` calls to make).
+- **No skill was removed.** All 17 are intentional.
+
 ## License
 
 MIT — see [`LICENSE`](LICENSE). The vendored DICOM snapshot keeps its own MIT

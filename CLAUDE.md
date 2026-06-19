@@ -10,14 +10,16 @@ When working on anything IRIS Interoperability, invoke the `interop` router skil
 It assumes the **`iris-agentic-dev` MCP server** is enabled (hard dependency).
 
 **Messages are the foundational building block** — design the message class before
-BS/BP/BO. The `interop` router skill enforces this and points to the right
-sibling skill for each task. Always load `tdd` as a companion.
+BS/BP/BO (except when the SOAP Wizard or the Record/Complex Record Mapper *generates*
+the message). The `interop` router skill enforces this and points to the right
+sibling skill for each task. Always load `iris-interop-skills:tdd` as a companion.
 
 ## Layout
 
 - `skills/*/SKILL.md` — the 17 skills. Each is a single `SKILL.md`.
-  The router (`interop`) refers to its siblings by **skill name**
-  (e.g. `messages`, `business-services`), not by path.
+  The router (`interop`) refers to its siblings by their **plugin-qualified id**
+  `iris-interop-skills:<name>` (e.g. `iris-interop-skills:messages`), not by bare
+  name or path — a bare `Skill("messages")` errors with "Unknown skill".
 - `BestPractices/` — the worked-example bank the skills cite:
   - `BestPractices_Interop_IRIS.md` — patterns tagged Validity/Severity.
   - `examples/` — runnable artefacts indexed in `examples/README.md`.

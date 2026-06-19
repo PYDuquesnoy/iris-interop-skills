@@ -297,10 +297,27 @@ When you create a CSP/REST web app to front a BS (or to expose a SOAP service th
 - Email inbound (`EnsLib.EMail.InboundAdapter`) — covered by docs; this skill doesn't have validated examples.
 - Workflow tasks / human steps — not a BS pattern.
 
+## IRIS SQL dialect — quick cheat-sheet
+
+When a RecordMap BS reads/writes through a SQL Gateway, or you verify a run with `iris_query`, keep
+these IRIS-SQL specifics in mind:
+
+- **Class ↔ table names.** A persistent class `Pkg.Sub.Cls` projects to SQL table `Pkg_Sub.Cls` —
+  package dots become `_`, and the **last** dot separates schema from table. So class `Ens.Util.Log`
+  is table `Ens_Util.Log`; `Ens.MessageHeader` stays `Ens.MessageHeader`. Real interop tables:
+  `Ens_Util.Log` (event log), `Ens.MessageHeader` (message headers), `EnsLib_*` schemas for adapter data.
+- **Reserved words.** `DOMAIN`, `LANGUAGE`, `OUTPUT`, `CONNECTION`, `DEFAULT`, `USER`, `VALUE`, `SECTION`
+  and friends are reserved. If a column/table is named one of them, **delimit it with double quotes**
+  (`SELECT "Connection" FROM …`). Unquoted, you get SQLCODE -1/-12.
+- **ObjectScript is not SQL.** `iris_query` runs SQL SELECTs only. `set`/`write`/`do`/`##class(...)`,
+  `&sql(...)`, and `^global` references are ObjectScript — run them with `iris_execute`, not `iris_query`.
+- **Discover, don't guess.** Before querying, use `iris_table_info` (or `docs_introspect`) to get the
+  real table/column names rather than guessing system-catalog tables.
+
 ## See also
 
-- `messages` — design the message class first
-- `bpl` — what the Message Router/BP target looks like; sync chain for ordering dependencies
-- `production-lifecycle` — wiring the BS into the production class
-- `security` — when authentication needs more than HTTP Basic (SAML, OAuth)
-- `soap-bo` — the outbound side; many of the same WSDL caveats apply
+- `iris-interop-skills:messages` — design the message class first
+- `iris-interop-skills:bpl` — what the Message Router/BP target looks like; sync chain for ordering dependencies
+- `iris-interop-skills:production-lifecycle` — wiring the BS into the production class
+- `iris-interop-skills:security` — when authentication needs more than HTTP Basic (SAML, OAuth)
+- `iris-interop-skills:soap-bo` — the outbound side; many of the same WSDL caveats apply
