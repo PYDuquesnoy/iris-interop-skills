@@ -95,19 +95,37 @@ self-contained binary.
 
 ## Install
 
-```text
-/plugin marketplace add PYDuquesnoy/iris-interop-skills
-/plugin install iris-interop-skills@iris-interop-skills
-```
+1. **Add the marketplace + install the plugin:**
 
-Then just work on IRIS interoperability tasks — the skills activate by topic.
-**Start at the `interop` router skill**: it points to the right sibling skill
-for each task and enforces the foundational rule that you design the **message
-class first**, before BS/BP/BO.
+   ```text
+   /plugin marketplace add PYDuquesnoy/iris-interop-skills
+   /plugin install iris-interop-skills@iris-interop-skills
+   ```
 
-Prefer not to install as a plugin? Clone the repo and open it as a project —
-Claude discovers the skills under `skills/` and the examples under
-`BestPractices/`.
+   This installs everything that ships with the plugin: the **17 skills**, the two **hooks**
+   (silent-execute guard + TDD enforcement — auto-enabled), and the three **agents**
+   (`interop-builder`, `deploy-smoke-test`, `introspect-dont-guess` — auto-registered; see *Agents* below).
+
+2. **Required — raise the skill-listing budget.** Claude Code reserves ~1% of context for each skill's
+   name + description; with a full skill set the two longest descriptions (the `interop` router and `tdd`)
+   can be evicted and **stop auto-triggering**. Add these two keys to your **own** settings —
+   `~/.claude/settings.json` (user) or `.claude/settings.json` (project):
+
+   ```json
+   {
+     "skillListingBudgetFraction": 0.03,
+     "skillListingMaxDescChars": 2048
+   }
+   ```
+
+   This is a **user setting** — a plugin can't set it for you (see *Skill-listing budget* below).
+
+3. **Work.** **Start at the `interop` router skill** — it routes to the right sibling skill and enforces
+   messages-first (design the message class before BS/BP/BO). Or hand a whole component to the
+   **`interop-builder`** agent and a wired production to **`deploy-smoke-test`**.
+
+Prefer not to install as a plugin? Clone the repo and open it as a project — Claude discovers the skills
+under `skills/`, the agents under `agents/`, and the examples under `BestPractices/`.
 
 ## What's inside
 
@@ -132,6 +150,20 @@ Claude discovers the skills under `skills/` and the examples under
 | `message-search-debug` | Message search, Visual Trace, the Event Log. |
 | `tdd` | TDD-first workflow (companion skill — load it alongside the others). |
 | `unit-tests` | `%UnitTest` framework reference. |
+
+### Agents (`agents/`)
+
+Three subagents ship with the plugin and **auto-register on install** — invoke them by name, or let
+Claude delegate based on the task description:
+
+| Agent | Use it for |
+|---|---|
+| `interop-builder` | Build/modify any interop component end-to-end with TDD — loads the right skills, writes the test first, implements via the MCP, returns only when it compiles and the test is green. |
+| `deploy-smoke-test` | Start a production, feed a sample input, and verify the message actually flowed (Event Log + Message Header + downstream target). |
+| `introspect-dont-guess` | Resolve real class/table/column/config names from the live IRIS catalog instead of guessing (prevents nonexistent-table errors). |
+
+The agents are **MCP-server-agnostic** (no server name pinned in their tools), so they work with either
+the `iris-agentic-dev` or `iris-interop-dev` MCP.
 
 ### Best practices & worked examples (`BestPractices/`)
 
