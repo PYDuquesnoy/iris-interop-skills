@@ -150,7 +150,7 @@ Switch to UPSERT (`INSERT ... ON CONFLICT (paciente_id) DO NOTHING` / `DO UPDATE
 
 ## Testing / how to verify
 
-1. Compile via iris-agentic-dev MCP.
+1. Compile via the MCP server.
 2. Add to production. Configure adapter settings (DSN, URL, credentials).
 3. From the Management Portal "Test" link on the BO, send a sample message. Or invoke from a Message Router.
 4. Use `message-search-debug` Visual Trace — confirm the BO received, attempted, and got an ACK/response from the destination.

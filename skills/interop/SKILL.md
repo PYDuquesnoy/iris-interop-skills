@@ -165,7 +165,7 @@ For FHIR-specific work, replace steps 4–7 with the `fhir` decision tree (Faça
 
 ## MCP dependency
 
-The skills assume the `iris-agentic-dev` MCP server is enabled — it provides the actions for compiling classes, inspecting productions, listing messages. If MCP tools are not available in the current session, tell the user explicitly and ask them to enable iris-agentic-dev (or perform the action manually in the IRIS Management Portal).
+The skills assume an IRIS MCP server is enabled — either `iris-agentic-dev` (the original) or the streamlined `iris-interop-dev` fork; tool names are identical, so either works. It provides the actions for compiling classes, inspecting productions, listing messages. If MCP tools are not available in the current session, tell the user explicitly and ask them to enable one (or perform the action manually in the IRIS Management Portal).
 
 ## Out of scope for this router
 

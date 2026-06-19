@@ -16,24 +16,35 @@ and manage the production lifecycle — with a TDD-first workflow throughout.
 
 Two steps, in order:
 
-1. **Set up the `iris-agentic-dev` MCP server** — the skills' runtime dependency
-   (binary + `.mcp.json`). See [*Set up the MCP server*](#set-up-the-iris-agentic-dev-mcp-server).
+1. **Set up an IRIS MCP server** — the skills' runtime dependency (binary + `.mcp.json`): the
+   original `iris-agentic-dev` **or** the streamlined `iris-interop-dev` fork (identical tool names —
+   the skills work with either). See [*Set up the MCP server*](#set-up-the-iris-mcp-server).
 2. **Install this plugin** — `/plugin marketplace add` + `/plugin install`.
    See [*Install*](#install).
 
 ## Requirements
 
 - **Claude Code**.
-- The **`iris-agentic-dev` MCP server** (hard dependency). The skills assume Claude can
+- An **IRIS MCP server** (hard dependency) — `iris-agentic-dev` or the streamlined `iris-interop-dev`
+  fork (identical tool names). The skills assume Claude can
   talk to a running IRIS for Health instance through it — load/compile classes,
   import schemas and lookups, run productions and unit tests, search messages.
 - An IRIS For Health (or IRIS + Interoperability) instance to build against.
 
-## Set up the `iris-agentic-dev` MCP server
+## Set up the IRIS MCP server
 
-The skills drive IRIS through the **`iris-agentic-dev`** MCP server
-([intersystems-community/iris-agentic-dev](https://github.com/intersystems-community/iris-agentic-dev)),
-a single self-contained binary.
+The skills drive IRIS through an MCP server exposing tools like `iris_compile`, `iris_doc`,
+`iris_execute`, `iris_query`, `iris_test`. **Two interchangeable options — the skills work with
+either, because the tool names are identical:**
+
+- **`iris-agentic-dev`** (original) —
+  [intersystems-community/iris-agentic-dev](https://github.com/intersystems-community/iris-agentic-dev).
+- **`iris-interop-dev`** (streamlined interop fork) — a 20-tool, interop-focused profile with fixed
+  `iris_execute` (real output capture), `iris_query` (SQL/table hints), and `iris_production`
+  (works over HTTP, no Docker).
+
+Register **one** of them in your `.mcp.json` (whichever binary you have). Each is a single
+self-contained binary.
 
 1. **Get the binary** — download the release asset for your platform from
    [Releases](https://github.com/intersystems-community/iris-agentic-dev/releases)
@@ -71,6 +82,11 @@ a single self-contained binary.
    | `IRIS_WEB_PREFIX` | _(empty)_ | URL path prefix for non-root installs (e.g. `irishealth`) |
    | `IRIS_USERNAME` / `IRIS_PASSWORD` | `_SYSTEM` / `SYS` | IRIS credentials |
    | `IRIS_NAMESPACE` | `USER` | Default namespace |
+
+   > **Using the streamlined fork?** Replace the server key `iris-agentic-dev` with `iris-interop-dev`
+   > (both in the `mcpServers` block above and in `enabledMcpjsonServers` below) and point `command` at
+   > the `iris-interop-dev` binary. Nothing else changes — the tool names are identical, so the skills
+   > and hooks work the same with either server.
 
 3. **Enable + verify** — make sure the server is enabled for the project
    (`"enabledMcpjsonServers": ["iris-agentic-dev"]` in `.claude/settings.json`), restart Claude

@@ -125,7 +125,7 @@ Worked example: `${CLAUDE_PLUGIN_ROOT}/BestPractices/examples/ch05_bpl_dtl/xml-p
 
 After compiling the message class:
 
-1. From the iris-agentic-dev MCP, run a class compilation and confirm no errors.
+1. From the MCP server, run a class compilation and confirm no errors.
 2. Open the Management Portal → System Explorer → Classes; confirm the class has its **own** SQL projection / storage definition (not inheriting `Ens.MessageBodyD`).
 3. Smoke test: create one instance with `%Save()`, confirm it persists in the message-class-specific table, not in `Ens.MessageBodyD`.
 

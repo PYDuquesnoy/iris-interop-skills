@@ -7,7 +7,7 @@ bank under `BestPractices/`.
 ## Skills system
 
 When working on anything IRIS Interoperability, invoke the `interop` router skill.
-It assumes the **`iris-agentic-dev` MCP server** is enabled (hard dependency).
+It assumes an IRIS MCP server (e.g. **`iris-agentic-dev`** or the streamlined **`iris-interop-dev`** fork) is enabled (hard dependency). Tool names are identical, so the skills work with either.
 
 **Messages are the foundational building block** — design the message class before
 BS/BP/BO (except when the SOAP Wizard or the Record/Complex Record Mapper *generates*

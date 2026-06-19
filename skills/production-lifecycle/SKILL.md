@@ -138,7 +138,7 @@ Naming and category conventions (apply to every item):
 - **`Category="<Package>"`** on every item. Groups items in the portal and enables category-level filtering. Use the project package (`MyApp`, `Hospital`) or a finer-grained label if it helps the UI.
 - **Omit noise attributes** like `Schedule=""` and `LogTraceEvents="false"`. They duplicate defaults and clutter the XML — leave them off unless the value is non-default and meaningful.
 
-Components are added by editing the XML directly or, more usually, via the Management Portal (or via iris-agentic-dev MCP).
+Components are added by editing the XML directly or, more usually, via the Management Portal (or via the MCP server).
 
 ## Defaults that are correct — don't audit them away
 
