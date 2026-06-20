@@ -1,7 +1,7 @@
 {
   "name": "iris-interop-skills",
-  "version": "1.2.0",
-  "description": "17 skills that steer Claude when building IRIS For Health Interoperability productions \u2014 messages, BS/BP/BO, BPL, DTL transformations, HL7 v2 schemas, SOAP/REST, FHIR, DICOM, lookup tables, alerting, security, production lifecycle, message search/debug, and a TDD-first workflow. Start at the iris-interop router. Assumes an IRIS MCP server (iris-agentic-dev or iris-interop-dev) is available. Ships 3 PostToolUse hooks + 3 agents (interop-builder, deploy-smoke-test, introspect-dont-guess).",
+  "version": "1.3.0",
+  "description": "18 skills that steer Claude when building IRIS For Health Interoperability productions \u2014 messages, BS/BP/BO, BPL, DTL transformations, HL7 v2 schemas, SOAP/REST, FHIR, DICOM, lookup tables, alerting, security, production lifecycle, message search/debug, a TDD-first workflow, and a post-build conformance review. Start at the iris-interop router. Assumes an IRIS MCP server (iris-agentic-dev or iris-interop-dev) is available. Ships 4 PostToolUse hooks + 4 agents (interop-builder, deploy-smoke-test, introspect-dont-guess, conformance-reviewer).",
   "author": {
     "name": "Pierre-Yves Duquesnoy",
     "url": "https://github.com/PYDuquesnoy"

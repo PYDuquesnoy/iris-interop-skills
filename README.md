@@ -1,6 +1,6 @@
 # iris-interop-skills
 
-A set of **17 Claude Code skills** for building **InterSystems IRIS For Health
+A set of **18 Claude Code skills** for building **InterSystems IRIS For Health
 Interoperability** productions — and a bank of worked examples and best practices
 distilled from real-world integration projects.
 
@@ -102,9 +102,10 @@ self-contained binary.
    /plugin install iris-interop-skills@iris-interop-skills
    ```
 
-   This installs everything that ships with the plugin: the **17 skills**, the two **hooks**
-   (silent-execute guard + TDD enforcement — auto-enabled), and the three **agents**
-   (`interop-builder`, `deploy-smoke-test`, `introspect-dont-guess` — auto-registered; see *Agents* below).
+   This installs everything that ships with the plugin: the **18 skills**, the four **hooks**
+   (silent-execute guard + TDD enforcement + docker-detect + conformance pre-scan — auto-enabled), and
+   the four **agents** (`interop-builder`, `deploy-smoke-test`, `introspect-dont-guess`,
+   `conformance-reviewer` — auto-registered; see *Agents* below).
 
 2. **Required — raise the skill-listing budget.** Claude Code reserves ~1% of context for each skill's
    name + description; with a full skill set the two longest descriptions (the `interop` router and `tdd`)
@@ -150,10 +151,11 @@ under `skills/`, the agents under `agents/`, and the examples under `BestPractic
 | `message-search-debug` | Message search, Visual Trace, the Event Log. |
 | `tdd` | TDD-first workflow (companion skill — load it alongside the others). |
 | `unit-tests` | `%UnitTest` framework reference. |
+| `conformance-review` | Post-build best-practice review (criteria CR-1…CR-10) — run it once a build is TDD-green. |
 
 ### Agents (`agents/`)
 
-Three subagents ship with the plugin and **auto-register on install** — invoke them by name, or let
+Four subagents ship with the plugin and **auto-register on install** — invoke them by name, or let
 Claude delegate based on the task description:
 
 | Agent | Use it for |
@@ -161,6 +163,7 @@ Claude delegate based on the task description:
 | `interop-builder` | Build/modify any interop component end-to-end with TDD — loads the right skills, writes the test first, implements via the MCP, returns only when it compiles and the test is green. |
 | `deploy-smoke-test` | Start a production, feed a sample input, and verify the message actually flowed (Event Log + Message Header + downstream target). |
 | `introspect-dont-guess` | Resolve real class/table/column/config names from the live IRIS catalog instead of guessing (prevents nonexistent-table errors). |
+| `conformance-reviewer` | After a build is TDD-green, review it against the best-practice criteria (CR-1…CR-10) — re-verifies tests via the real `iris_test` (not a self-graded `[SqlProc]`), reports findings + a scoped remediation plan, applies only unambiguous fixes after you confirm. |
 
 The agents are **MCP-server-agnostic** (no server name pinned in their tools), so they work with either
 the `iris-agentic-dev` or `iris-interop-dev` MCP.
