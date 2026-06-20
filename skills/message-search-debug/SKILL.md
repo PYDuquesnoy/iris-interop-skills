@@ -26,6 +26,8 @@ Heuristic: start at the Production Status page (red items?). Follow up in Event 
 
 When inspecting a running production through the IRIS MCP, reach for `iris_interop_query` / `iris_production` / `iris_production_item`. Do **not** hand-write SQL against `Ens_Util.Log` / `Ens.MessageHeader`, and never guess `%SYS.*` / `Config.*` / `Ens_Config.*` catalog tables — those guesses fail ~⅔ of the time. One typed call replaces the multi-query reconstruction (and the `SELECT MAX(ID)` watermark dance).
 
+> **The `<SYNTAX>errdone+2^%qaqqt` signature = you hand-rolled SQL through `iris_execute`.** `%qaqqt` is the SQL query compiler; it chokes on malformed/dynamic SQL (invalid predicates like `%STARTSWITH`/`%LIKE`, or `SELECT … FROM` a table that doesn't exist — `Ens_Config.Setting`, `Config.config`, `%SYS.*ELS*`). Two fixes: (1) a read-only SELECT → use `iris_query` (it goes through a real result-set path and returns a `hint` naming the right typed tool on "table not found"); (2) anything that runs ObjectScript or **generates classes** → wrap it in a `[SqlProc]` class method and call it via `iris_query`, never embed `&sql`/`%SQL.Statement` inside an `iris_execute` snippet.
+
 | You want… | Call this (one round-trip) |
 |---|---|
 | Event Log of a component | `iris_interop_query(what=logs, component="<Item>")` |

@@ -1,8 +1,9 @@
 # iris-interop-skills
 
-A standalone plugin of **17 skills** for building InterSystems IRIS For Health
+A standalone plugin of **20 skills** for building InterSystems IRIS For Health
 Interoperability productions with Claude, plus a best-practices + worked-examples
-bank under `BestPractices/`.
+bank under `BestPractices/`. Start at the `interop` router; load `component-map`
+right after it to pick the right component/adapter for the task at hand.
 
 ## Skills system
 
@@ -16,7 +17,7 @@ sibling skill for each task. Always load `iris-interop-skills:tdd` as a companio
 
 ## Layout
 
-- `skills/*/SKILL.md` — the 17 skills. Each is a single `SKILL.md`.
+- `skills/*/SKILL.md` — the 20 skills. Each is a single `SKILL.md`.
   The router (`interop`) refers to its siblings by their **plugin-qualified id**
   `iris-interop-skills:<name>` (e.g. `iris-interop-skills:messages`), not by bare
   name or path — a bare `Skill("messages")` errors with "Unknown skill".

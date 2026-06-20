@@ -109,6 +109,7 @@ System Default Settings are the **only** layer that does NOT migrate via a produ
 
 | If the user is doing… | Load this skill (call now) |
 |---|---|
+| **Starting a build / unsure which component or adapter fits a task** | `iris-interop-skills:component-map` (task→component quick-reference; load right after this router) |
 | Designing the message class itself (HL7, persistent, SOAP) | `iris-interop-skills:messages` |
 | Building a Business Service (inbound: file/TCP/SOAP/REST/CSV) | `iris-interop-skills:business-services` |
 | Writing a DTL or transforming HL7/CDA/XML | `iris-interop-skills:transformations` |
@@ -133,6 +134,7 @@ Loading this router is **not** enough: you must issue the actual `Skill(...)` ca
 in play, as soon as you recognise the work — not after you start coding. When several components are
 involved, issue several `Skill(...)` calls in the same turn.
 
+- Unsure which component/adapter a task needs, or starting a fresh build → `Skill(iris-interop-skills:component-map)` to pick the component, then hand off to its depth skill below.
 - Building/modifying **ANY** component (BS/BP/BO/DTL/Rule/Message class) → also call
   `Skill(iris-interop-skills:tdd)` in the same turn (TDD is the default workflow, not opt-in).
 - Designing a message → `Skill(iris-interop-skills:messages)` **first** (messages-first principle).

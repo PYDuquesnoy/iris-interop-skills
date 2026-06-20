@@ -64,6 +64,7 @@ Key elements:
 - `MessageMap` dispatches the right method per incoming request type.
 - `Adapter.*` calls do the protocol work; the method does the message-shape work.
 - Always parameterize SQL — never concatenate values.
+- **One bind argument per `?`, in order.** Pass each field as its own argument — `ExecuteUpdate(.rows, sql, f1, f2, f3)`, not the whole record as one string. Binding a delimited row (`"1|Yu,Sophia|977-…"`) into a single `?` makes the driver try to coerce the entire blob to the first column's type and fails with e.g. `NumberFormatException: For input string "1|Yu,Sophia|…"`. If the request is a RecordMap record, bind its **properties**, not the raw line.
 - Return a typed response if the BP cares; otherwise plain `Ens.Response`.
 
 ## SOAP BOs — see the dedicated skill
@@ -159,6 +160,17 @@ Switch to UPSERT (`INSERT ... ON CONFLICT (paciente_id) DO NOTHING` / `DO UPDATE
 ## JDBC outbound — wiring checklist
 
 A JDBC-backed BO needs more than just a `DSN` setting; the full path from class to database touches the JVM, the External Language Server, and four BO settings that must align. Missing one piece produces opaque errors ("Java gateway not started", "no driver found", "no suitable driver"). Validate the checklist before debugging code.
+
+### Use a direct `jdbc:` URL — NOT a pre-created ODBC DSN
+
+The adapter's `DSN` setting takes a **direct JDBC URL** (`jdbc:postgresql://host:5432/db`, `jdbc:IRIS://localhost:1972/USER`). Do **not** route an external-DB BO through an ODBC System DSN — that path produces an un-winnable spiral:
+
+```
+ERROR #6022: Gateway failed: SQLConnect ... SQLState (IM002)
+             Data source name not found and no default driver specified
+```
+
+`IM002` means the OS has no ODBC DSN by that name (and configuring one is host-specific, fragile, and invisible to source control). The JDBC adapter does not need it: point `DSN` at the `jdbc:` URL, set `JDBCDriver` + `JDBCClasspath` (the quartet below), and the gateway connects directly. If you ever see `#6022 (IM002)`, stop — you're on the ODBC path; switch to the JDBC URL rather than trying to create the DSN.
 
 ### Prerequisites (one-time per host)
 
