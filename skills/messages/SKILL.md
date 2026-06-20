@@ -161,6 +161,16 @@ A canonical message that takes values from HL7 segments or REST JSON should decl
 
 Strict types like `%SmallInt`, `%Integer`, `%Boolean`, `%Date` are fine for fields that are populated programmatically (`req.PacienteId = ...` from controlled code) but risky for fields populated from external sources. `%String` plus runtime validation gives clearer error messages and decouples the canonical from upstream surprises.
 
+## `%String` length — the `MAXLEN=50` trap (and `MAXLEN=""` for big text)
+
+A **bare `%String` defaults to `MAXLEN=50`** — and values longer than 50 chars are **silently truncated** on `%Save` (no error, the data is just gone). This routinely bites canonical messages carrying free text: addresses, clinical notes, HL7 `OBX`/`NTE` text, JSON blobs, base64.
+
+- Give every text-ish property an explicit length: `As %String(MAXLEN=200)` (size it to the source).
+- For "as large as a string can be", use **`As %String(MAXLEN="")`** — unbounded, capped at the IRIS string ceiling of **~3.6 MB** (3,641,144 chars). No penalty for declaring it.
+- Past ~3.6 MB, or for genuinely large/streamed payloads, switch the property to **`%Stream.GlobalCharacter`** (see the XML-projection and SOAP-envelope patterns above).
+
+> **SOAP Wizard / WSDL caveat.** When a WSDL declares a string **without a length facet**, the message class the SOAP wizard auto-generates can come out with a **bounded `%String` (the 50 default)** for that property — so inbound/outbound values silently truncate. After running the wizard, **review the generated payload classes and widen** the affected properties to `%String(MAXLEN="")` (or `%Stream.GlobalCharacter` for large content). See `soap-bo`.
+
 ## Collections — `list Of` for typed multi-valued fields
 
 For HL7 repeating fields (AL1*, NK1*), REST JSON arrays, or any multi-valued source, the canonical's property is `list Of %String(MAXLEN=N)` (or `list Of <ObjectClass>`). The DTL fills the list with `Insert`. Persistence storage is automatic. SQL projection generates a child table `<Parent>_<PropertyName>` for queries like:
