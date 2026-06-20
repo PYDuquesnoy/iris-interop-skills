@@ -40,6 +40,9 @@ guidance, not recollection: `iris-interop-skills:interop` (naming/router) plus `
 - An explicit split: **safe to auto-apply** (P0/P1 with an unambiguous canonical fix) vs **left as a note**
   (defensible P2/P3). Offer to apply the safe set; apply only after the user says yes, then re-run the
   affected test to confirm still-green. Never rewrite silently.
+- **Optionally**, for *confirmed* P0/P1 findings, offer `Skill(iris-interop-skills:report-issue)` to file a
+  **deduped, batched** GitHub issue (one issue per review, searched against existing first, user-confirmed).
+  Don't file automatically and don't open one issue per finding.
 
 A clean build is a valid, valuable result: report "no findings" together with the verified `iris_test`
 result. Your job is to make the conformance gap (or its absence) explicit and actionable — not to rebuild.

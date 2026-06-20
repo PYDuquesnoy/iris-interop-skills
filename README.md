@@ -1,6 +1,6 @@
 # iris-interop-skills
 
-A set of **18 Claude Code skills** for building **InterSystems IRIS For Health
+A set of **19 Claude Code skills** for building **InterSystems IRIS For Health
 Interoperability** productions — and a bank of worked examples and best practices
 distilled from real-world integration projects.
 
@@ -102,7 +102,7 @@ self-contained binary.
    /plugin install iris-interop-skills@iris-interop-skills
    ```
 
-   This installs everything that ships with the plugin: the **18 skills**, the four **hooks**
+   This installs everything that ships with the plugin: the **19 skills**, the four **hooks**
    (silent-execute guard + TDD enforcement + docker-detect + conformance pre-scan — auto-enabled), and
    the four **agents** (`interop-builder`, `deploy-smoke-test`, `introspect-dont-guess`,
    `conformance-reviewer` — auto-registered; see *Agents* below).
@@ -152,6 +152,7 @@ under `skills/`, the agents under `agents/`, and the examples under `BestPractic
 | `tdd` | TDD-first workflow (companion skill — load it alongside the others). |
 | `unit-tests` | `%UnitTest` framework reference. |
 | `conformance-review` | Post-build best-practice review (criteria CR-1…CR-10) — run it once a build is TDD-green. |
+| `report-issue` | Optionally propose a **deduped, user-confirmed** GitHub issue for a confirmed compliance violation or a reproducible MCP/skill defect (never auto-files; batches findings). |
 
 ### Agents (`agents/`)
 
