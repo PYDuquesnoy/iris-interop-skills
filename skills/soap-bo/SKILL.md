@@ -24,6 +24,10 @@ Output:
 - A BO class extending `Ens.BusinessOperation` with one method per WSDL operation, plus `MessageMap` dispatch.
 - One request class and one response class per operation, plus shared type classes.
 
+## Review the generated payloads — the `MAXLEN=50` truncation trap
+
+When the WSDL declares a string type **without a length facet**, the wizard-generated property comes out as a **bounded `%String` with the default `MAXLEN=50`** — longer values are then **silently truncated** on save (no error). Always audit the generated payload classes after running the wizard and **widen** affected string properties to `%String(MAXLEN="")` (unbounded, ~3.6 MB ceiling) or `%Stream.GlobalCharacter` for large content. Same trap, longer treatment in `messages` (`%String` length section).
+
 ## Storage decision: %SerialObject vs %Persistent for payloads
 
 The wizard generates payload classes (the WSDL types). By default these are `%SerialObject` — embedded inside the carrying request/response, no separate storage. **Change to `%Persistent` when:**
