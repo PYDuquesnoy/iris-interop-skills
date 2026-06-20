@@ -22,6 +22,30 @@ The user is troubleshooting: a message didn't arrive, a transformation produced 
 
 Heuristic: start at the Production Status page (red items?). Follow up in Event Log for component-level errors. Use Visual Trace once you've narrowed to a specific message.
 
+## Runtime queries from Claude — use the typed MCP tool, never guess SQL
+
+When inspecting a running production through the IRIS MCP, reach for `iris_interop_query` / `iris_production` / `iris_production_item`. Do **not** hand-write SQL against `Ens_Util.Log` / `Ens.MessageHeader`, and never guess `%SYS.*` / `Config.*` / `Ens_Config.*` catalog tables — those guesses fail ~⅔ of the time. One typed call replaces the multi-query reconstruction (and the `SELECT MAX(ID)` watermark dance).
+
+| You want… | Call this (one round-trip) |
+|---|---|
+| Event Log of a component | `iris_interop_query(what=logs, component="<Item>")` |
+| Only new log entries since last check | `iris_interop_query(what=logs, since_id=<lastID>)` — no `SELECT MAX(ID)` first |
+| Events of one session | `iris_interop_query(what=logs, session_id=<n>)` |
+| Messages of one session | `iris_interop_query(what=messages, session_id=<n>)` |
+| **Everything one initial message triggered** (header chain + events) | `iris_interop_query(what=trace, session_id=<n>)` |
+| Message archive (by source/target/class) | `iris_interop_query(what=messages, source=…, target=…)` |
+| Queue depths | `iris_interop_query(what=queues)` |
+| Production state | `iris_production(action=status)` |
+| One item's settings | `iris_production_item(action=get_settings, item="<Item>")` |
+| Change a setting **and apply live** | `iris_production_item(action=set_settings, item=…, settings={…})` — applies via `Ens.Director.UpdateProduction`; pass `apply=false` to batch and apply once |
+| Restart **one** component | `iris_production(action=restart, item="<Item>")` |
+| Apply pending config to the whole production | `iris_production(action=update)` |
+| Business partners | `iris_interop_query(what=partners)` |
+| SQL-Gateway connections | introspect-dont-guess agent / `iris_table_info` (no SQL catalog table) |
+| Namespaces | `check_config` (not a SQL table) |
+
+If you do fall back to raw `iris_query` and hit "table not found", **read the `hint`** it returns — it names the typed tool for that exact case.
+
 ## Searching by message body content
 
 Searchable when:
