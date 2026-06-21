@@ -30,7 +30,7 @@ What's the destination?
 
 When the destination is a `%Persistent` class **in the same namespace as the production**, the cleanest BO has **no adapter at all** — its MessageMap method just does `Set obj = ##class(App.Data.X).%New()`, copies fields, `Set sc = obj.%Save()`. Fewer moving parts, directly unit-testable (`EnsLib.Testing.Service.SendTestRequest` → BO → assert the row), no JDBC/ELS plumbing.
 
-Reach for `EnsLib.SQL.OutboundAdapter` (JDBC) **only when the table lives in a foreign/external database** (PostgreSQL, Oracle, a different IRIS namespace reached as a DSN). The adapter exists to cross a process/DB boundary; using it to write a table you could open as an object in-process is needless complexity. (Flow A of a hub persists `Siniestro` locally via object save; Flows that sync to an external PostgreSQL use the SQL adapter — same project, different choice driven by where the table lives.)
+Reach for `EnsLib.SQL.OutboundAdapter` (JDBC) **only when the table lives in a foreign/external database** (PostgreSQL, Oracle, a different IRIS namespace reached as a DSN). The adapter exists to cross a process/DB boundary; using it to write a table you could open as an object in-process is needless complexity. (Flow A of a hub persists `Order` locally via object save; Flows that sync to an external PostgreSQL use the SQL adapter — same project, different choice driven by where the table lives.)
 
 ## Canonical pattern — custom BO for a typed request
 
