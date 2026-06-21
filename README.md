@@ -102,7 +102,7 @@ self-contained binary.
    /plugin install iris-interop-skills@iris-interop-skills
    ```
 
-   This installs everything that ships with the plugin: the **19 skills**, the four **hooks**
+   This installs everything that ships with the plugin: the **20 skills**, the four **hooks**
    (silent-execute guard + TDD enforcement + docker-detect + conformance pre-scan — auto-enabled), and
    the four **agents** (`interop-builder`, `deploy-smoke-test`, `introspect-dont-guess`,
    `conformance-reviewer` — auto-registered; see *Agents* below).
@@ -135,6 +135,7 @@ under `skills/`, the agents under `agents/`, and the examples under `BestPractic
 | Skill | Use it for |
 |---|---|
 | `interop` | **Router / index.** Start here; routes to the right skill and enforces messages-first. |
+| `component-map` | **Task→component quick-reference.** Load right after the router: maps a plain-English task to the exact component type, superclass, prebuilt adapter, and key methods/settings. |
 | `messages` | Designing message classes (the foundational building block). |
 | `business-services` | Inbound Business Services (adapters, framing, schema category). |
 | `business-operations` | Generic (non-SOAP) Business Operations. |
