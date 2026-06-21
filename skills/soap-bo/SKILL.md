@@ -157,21 +157,51 @@ Sync vs Async: SOAP calls are usually synchronous (you want the response). But i
 3. From a unit test (`unit-tests`), invoke the BO method directly with a constructed request. Stub the endpoint with a local mock if the real endpoint isn't reachable.
 4. Use `message-search-debug` to confirm Visual Trace shows the request → response cycle correctly when the BO is called from a BP.
 
-## Alternative path: HTTP outbound + hand-crafted envelope
+## Headless WSDL→client generation (no Portal UI)
 
-The SOAP Wizard runs in the **Management Portal UI** — it is **not invocable** from the IRIS REST API or from the MCP tooling. `%SOAP.WSDL.Reader.Process()` (the underlying class) is similarly fiddly and undocumented across versions. If you're driving IRIS from outside the portal (MCP-only workflow, headless CI, programmatic class generation), don't fight the Wizard — **use `EnsLib.HTTP.OutboundAdapter` + a hand-crafted SOAP envelope** (covered in `business-operations`).
+The Portal's SOAP Wizard is just a UI over **`%SOAP.WSDL.Reader`**, and that class **is invocable headless via `iris_execute`** — there is no Portal-only restriction on the generation itself (only the REST API has no dedicated "wizard" endpoint). So in an MCP-only / headless workflow you do **not** have to hand-roll SOAP: drive the Reader directly when the WSDL is reachable at build time.
 
-Trade-offs:
+```objectscript
+// Generate the SOAP client + payload classes from a WSDL — runs fine through iris_execute.
+Set reader = ##class(%SOAP.WSDL.Reader).%New()
+Set sc = reader.Process("http://host/path/Service.cls?WSDL", "Pkg.WSC.MyService")
+If $$$ISERR(sc) { /* $System.Status.GetErrorText(sc) */ }
+// -> compiles the client + request/response classes into package Pkg.WSC.MyService.
+// Read the generated source with iris_doc(get); wrap the client in an Ens BO using
+// EnsLib.SOAP.OutboundAdapter.
+```
 
-| | SOAP Wizard | HTTP-manual envelope |
+Verified on IRIS-for-Health 2026.1: `Process` is an **instance** method with signature
+`Process(pLocationURL As %String, pPackage As %String = "", pTest As %Boolean = 0, schemaReader = "")`,
+and there is also `GenerateService(pService, pNamespace, pPort, PackageName, ClientClassName, ServiceClassName)`
+for the service-class variant. (Note: there is **no** `%SOAP.WSDL.Client` class — use `%SOAP.WSDL.Reader`.)
+
+Caveats that make this genuinely fiddly (so it isn't always the easy win): the URL must be a real WSDL
+**reachable from the IRIS server** (a non-WSDL response yields `ERROR #6411: Element 'definitions' or 'schema' is missing`), it usually needs Basic auth baked into the URL or a configured credential, the generated
+classes carry the same vendor patches documented above (re-apply on regeneration), and `%SOAP.WebClient`
+runtime faults surface as opaque `<ZSOAP> 64`.
+
+### When to fall back to HTTP-manual envelope instead
+
+When the WSDL is **not reachable at build time**, or you want full wire visibility / debuggability, skip the
+Reader and **use `EnsLib.HTTP.OutboundAdapter` + a hand-crafted SOAP envelope** (covered in `business-operations`).
+
+| | `%SOAP.WSDL.Reader` (generate) | HTTP-manual envelope |
 |---|---|---|
 | Strongly-typed request/response classes | ✓ generated | ✗ build XML/parse XML by hand |
+| Native credential / SSL settings on the client | ✓ | ✗ wire Basic/SSL by hand on the adapter |
+| Headless / MCP-invocable | ✓ (`iris_execute` → `%SOAP.WSDL.Reader`) | ✓ |
+| Needs the WSDL reachable at build time | yes | no |
 | Visibility into wire | poor (`%SOAP.WebClient` hides everything) | full (you write the bytes) |
-| Debuggability when remote returns 4xx/5xx fault | hard (`<ZSOAP> 64` errors with no detail) | easy (read response body, see fault XML) |
-| Requires MGT Portal access at build time | yes | no |
-| Maintenance burden when WSDL evolves | re-run Wizard, may overwrite customizations | hand-edit the envelope |
+| Debuggability when remote returns 4xx/5xx fault | hard (`<ZSOAP> 64`, no detail) | easy (read response body, see fault XML) |
+| Maintenance burden when WSDL evolves | re-run the Reader, may overwrite customizations | hand-edit the envelope |
 
-Use the Wizard for stable, well-defined services consumed long-term. Use HTTP-manual for: workshops, MCP-driven development, one-off integrations, services with quirky WSDL that the Wizard chokes on, or any case where `%SOAP.WebClient` gives `<ZSOAP> 64` and you can't tell why. Document the choice as a friction-log entry — the IRIS SOAP stack's debug story is not great and "use the Wizard" isn't always actionable.
+Generate from the WSDL for stable, long-term services where the WSDL is reachable and you want the typed
+classes + native credential/SSL settings. Use HTTP-manual for: unreachable-at-build-time WSDLs, quirky WSDLs
+the stack chokes on, or any case where `%SOAP.WebClient` gives `<ZSOAP> 64` and you can't tell why. **Do not**
+fall back to hand-injecting an `Authorization: Basic` header by reaching into `..Adapter.%CredentialsObj` —
+that's the anti-pattern this section exists to prevent; either generate the client (native `Credentials`) or
+set the adapter's `Credentials`/`SSLConfig` settings. Document the choice as a friction-log entry.
 
 ## Server-side: hosting a SOAP service in an IRIS namespace
 
