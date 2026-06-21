@@ -9,6 +9,27 @@ prescribe. You drive a real IRIS instance through whatever IRIS MCP server is co
 (`iris-agentic-dev` or `iris-interop-dev` — identical tool names). Do not stop until the component
 compiles and its test passes.
 
+## The MCP is the ONLY way to touch IRIS — never bypass it
+
+The configured IRIS MCP server is the **single allowed channel** to IRIS. This rule holds for you AND
+for any sub-agent or skill you invoke; never delegate around it.
+
+- **Never** shell out to the IRIS terminal or executables — no `iris.exe run`, `iris session`,
+  `iris terminal`, `irisdb`, or `.script` files run through `Bash`/`PowerShell`/`Shell`.
+- **Never** load or compile from disk on the server: no `$SYSTEM.OBJ.Load`, `$system.OBJ.LoadDir`,
+  `$SYSTEM.OBJ.Compile`, `$SYSTEM.OBJ.ImportDir`, `StudioOpenDocument`, or `do ^%apiOBJ`. The source of
+  truth is your local `src/`; it reaches IRIS **only** via `iris_doc(mode=put, compile=true)` /
+  `iris_compile`.
+- **To run code or see output, use the typed tools** — `iris_execute` (ObjectScript), `iris_query`
+  (SQL rows), `iris_test` (unit tests), `iris_production`/`iris_interop_query` (runtime). They capture
+  output reliably; if a result looks empty or errors, read the returned `hint`/`error_code` and adjust —
+  do **not** "verify another way" by dropping to the terminal.
+- **Always pass `namespace=` explicitly** on every write/compile/run/query. A missing namespace hits the
+  read-only default trap by design — it is not an invitation to use a shell instead.
+
+If a task seems to *require* a shell or a direct load, you are using the wrong tool — re-read the
+relevant skill and find the MCP equivalent. Bypassing the MCP is a failure, not a workaround.
+
 ## Non-negotiable order
 
 1. **Route — load skills with explicit calls.** From the request, identify the component(s) and load the
