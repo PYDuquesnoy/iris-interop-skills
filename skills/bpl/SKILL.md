@@ -23,6 +23,33 @@ This is the **non-negotiable starting point** for any production. Each Business 
 
 A "trivial" router (single rule, single `<send>`) is **not** infrastructure waste — it's the seam where future routing changes will live. Audit it as good, not as gap.
 
+### Match the router engine to the message class — and never mix HL7 with custom
+
+The routing-engine class is **not** one-size-fits-all; pick it from what the router actually carries:
+
+| The router handles… | Runtime engine class | Rule assist class |
+|---|---|---|
+| `EnsLib.HL7.Message` (HL7 v2.x) | `EnsLib.HL7.MsgRouter.RoutingEngine` | `EnsLib.HL7.MsgRouter.RuleAssist` |
+| Other virtual docs (X12, ASTM, XML VDoc) | `EnsLib.MsgRouter.VDocRoutingEngine` | `EnsLib.MsgRouter.VDocRuleAssist` |
+| Custom `Ens.Request` subclasses, RecordMap records, JSON/REST messages | `EnsLib.MsgRouter.RoutingEngine` | `EnsLib.MsgRouter.RuleAssist` |
+
+A rule for an **HL7** router sets `RuleAssistClass = "EnsLib.HL7.MsgRouter.RuleAssist"` and its `<ruleDefinition>` uses `context="EnsLib.HL7.MsgRouter.RoutingEngine"`, so the rule editor knows about `docCategory`/`docName` and exposes the `{SEG:field}` virtual-property syntax. Run an HL7 message class through the **generic** `EnsLib.MsgRouter.RoutingEngine` and it still compiles and passes tests — but you **lose HL7 schema validation in the rule editor** and the `{MSH:9.1}`-style paths, and you'll be matching on raw message metadata instead.
+
+**Do not mix `EnsLib.HL7.Message` and custom message classes in the same router** (even across separate rules in one rule set). The engine is chosen per router, so a router that must serve both can only pick one, and the other half loses its proper assist/validation. Give HL7 sources an HL7 router and custom sources a generic router — which is just the "one router per origin" rule applied to message *shape*, not only to source. Add `docCategory` + `docName` constraints on HL7 rules so an unexpected message type never silently matches.
+
+```xml
+<rule name="ADT_A01">
+  <constraint name="msgClass"     value="EnsLib.HL7.Message"/>
+  <constraint name="docCategory"  value="2.5"/>
+  <constraint name="docName"      value="ADT_A01"/>
+  <when condition='Document.{MSH:9.2}="A01"'>
+    <send transform="MyApp.DT.AdtToCanon" target="BO.Target"/><return/>
+  </when>
+</rule>
+```
+
+(The conformance reviewer flags the mixed-router / wrong-engine case as **CR-6**; this section is the build-time guidance so you avoid it in the first place, not just catch it after.)
+
 ```
 BS.Censo  →  Router.Censo  →  BO.Cocina
             (Rule.RoutingCenso: 1 rule, 1 send, possibly a filter)
