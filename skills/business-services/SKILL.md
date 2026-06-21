@@ -145,7 +145,7 @@ Both share the **same `RecordMap`** and should point at the **same Router**. Pat
 
 ## REST inbound — `EnsLib.REST.Service`
 
-For a JSON REST endpoint that feeds a production (e.g. `POST /segurclinico/preauth`), subclass `EnsLib.REST.Service` (it is BOTH a `%CSP.REST` and an `Ens.BusinessService`). Skeleton:
+For a JSON REST endpoint that feeds a production (e.g. `POST /demo/preauth`), subclass `EnsLib.REST.Service` (it is BOTH a `%CSP.REST` and an `Ens.BusinessService`). Skeleton:
 
 ```objectscript
 Class App.BS.Preauth Extends EnsLib.REST.Service
@@ -155,7 +155,7 @@ Parameter SETTINGS = "TargetConfigName:Basic";
 Property TargetConfigName As %String [ InitialExpression = "BP.Preauth" ];
 
 XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
-{ <Routes><Route Url="/segurclinico/preauth" Method="POST" Call="Preauth"/></Routes> }
+{ <Routes><Route Url="/demo/preauth" Method="POST" Call="Preauth"/></Routes> }
 
 Method Preauth(pInput As %Stream.Object, Output pOutput As %Stream.Object) As %Status
 {
@@ -177,7 +177,7 @@ Five non-obvious rules (each cost a debug cycle — see friction log):
 - **Write to the `pOutput` the framework passes in — do NOT `Set pOutput = ##class(%GlobalBinaryStream).%New()`.** Rebinding the local variable orphans the framework's response stream; the HTTP reply comes back `200` with an **empty body**.
 - **The route handler runs as an INSTANCE method of the service host** (`EnsLib.REST.Service` dispatches no-class-prefix routes via `$method($this,...)`), so `..SendRequestSync(target, req, .resp)` to a BP/BO works directly inside it.
 - **`%DynamicObject` keys with underscores need `%Get`/`%Set`** — `tJSON.codigo_acto` parses as `tJSON.codigo _ acto` (the `_` is the concat operator) and breaks compilation. Use `tJSON.%Get("codigo_acto")`.
-- **Exposure:** with `EnsLib.HTTP.InboundAdapter` the service listens on its own `Port` (clean URL `http://host:PORT/segurclinico/preauth`). Via the **CSP gateway** (web app `DispatchClass=App.BS.Preauth`) `EnsLib.REST.Service` requires `?CfgItem=<configItemName>` appended to the URL (stated in the class doc-comment) — a wart; prefer the InboundAdapter port unless you must go through the gateway. BS is tested from outside (curl), not from inside IRIS.
+- **Exposure:** with `EnsLib.HTTP.InboundAdapter` the service listens on its own `Port` (clean URL `http://host:PORT/demo/preauth`). Via the **CSP gateway** (web app `DispatchClass=App.BS.Preauth`) `EnsLib.REST.Service` requires `?CfgItem=<configItemName>` appended to the URL (stated in the class doc-comment) — a wart; prefer the InboundAdapter port unless you must go through the gateway. BS is tested from outside (curl), not from inside IRIS.
 - **`ErrHTTPConfigName` = the dispatcher can't resolve a config item by that name.** Through the CSP gateway, the `?CfgItem=<name>` (or the URL segment) **must exactly match the production item Name** of the REST service. Renaming the item (e.g. from `BS.PacientesREST` to `pacientes`) without updating the caller's URL — or vice-versa — yields `ErrHTTPConfigName` and a 500. Keep the item Name and the dispatch name in lockstep; this single mismatch is a notorious repeat-offender across separate debugging passes.
 
 ## Testing / how to verify
