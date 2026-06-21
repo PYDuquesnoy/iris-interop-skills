@@ -207,9 +207,10 @@ Raise the budget in your **own** settings — `~/.claude/settings.json` (user) o
 
 ## Hooks
 
-Three `PostToolUse` hooks ship in `hooks/` and auto-enable when the plugin is installed (wired via
-`hooks/hooks.json`, referenced from `plugin.json`). Both are **advisory** (they never block) and
-need **python3** on PATH; if python3 is absent they degrade to a no-op.
+Four `PostToolUse` hooks ship in `hooks/` and auto-enable when the plugin is installed (wired via
+`hooks/hooks.json`, referenced from `plugin.json`). They are **advisory** (they never block) and
+need a Python interpreter on PATH — resolved as **`python3` → `python` → `py`** (so Windows, where
+the interpreter is `python`/`py` rather than `python3`, works too); if none is found they degrade to a no-op.
 
 | Hook | Fires on | What it does |
 |---|---|---|
