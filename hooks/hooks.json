@@ -1,5 +1,26 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/interop-bootstrap.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*__iris_doc|iris_doc|mcp__.*__iris_compile|iris_compile",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/interop-conformance-gate.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "mcp__.*__iris_execute|iris_execute",
