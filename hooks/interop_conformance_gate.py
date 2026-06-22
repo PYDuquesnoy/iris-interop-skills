@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse conformance GATE for iris_doc / iris_compile (iris-interop-skills).
+"""PreToolUse conformance GATE for iris_doc / iris_compile / iris_execute (iris-interop-skills).
 
 Unlike the PostToolUse advisories (which a weak model ignores), this BLOCKS the write/compile
 when a class violates a hard, unambiguous iris-interop convention, forcing a fix before the
@@ -12,6 +12,10 @@ class lands. It denies only high-confidence violations (no false positives on or
      *OutboundAdapter directly — a BS/BO must Extend Ens.BusinessService / Ens.BusinessOperation
      and declare the adapter via `Parameter ADAPTER`. (A genuine custom adapter, not named
      .BS./.BO./.Service./.Operation., is left alone.)
+  3. Loading/compiling/importing classes through `iris_execute` ($SYSTEM.OBJ.Load /
+     $SYSTEM.OBJ.Import / $SYSTEM.OBJ.Compile) — this bypasses the iris_doc/iris_compile path
+     AND checks 1-2 above. Source must be written with iris_doc(mode=put) and compiled with
+     iris_compile. (Deleting/exporting via iris_execute — Delete/DeletePackage/Export — is fine.)
 
 Everything else is allowed (no output = allow). Deny is emitted as a PreToolUse permissionDecision.
 """
@@ -26,6 +30,11 @@ NONSTD = {
     "Message": "MSG", "Messages": "MSG",
 }
 BS_BO_SEGS = {"BS", "BO", "Service", "Operation", "BusinessService", "BusinessOperation"}
+
+# Class load/compile/import driven through iris_execute instead of iris_doc/iris_compile.
+# Matches both `$SYSTEM.OBJ.Load(` and the `##class(%SYSTEM.OBJ).Load(` form (optional `)`),
+# for Load*/Import*/Compile* only — Delete/DeletePackage/Export are intentionally NOT matched.
+OBJ_BYPASS = re.compile(r"(?i)SYSTEM\.OBJ\)?\.(Load|Import|Compile)")
 
 
 def deny(reason):
@@ -58,6 +67,21 @@ def main():
     ti = data.get("tool_input", {}) or {}
     names = collect_names(ti)
     content = ti.get("content") if isinstance(ti.get("content"), str) else ""
+
+    # (3) iris_execute used to load/compile/import classes — bypasses iris_doc/iris_compile + this gate.
+    code = ti.get("code") if isinstance(ti.get("code"), str) else ""
+    if code:
+        m = OBJ_BYPASS.search(code)
+        if m:
+            deny(
+                "Loading/compiling classes through iris_execute (matched '%s') bypasses the MCP's "
+                "iris_doc/iris_compile path and this conformance gate. Write source with "
+                "iris_doc(mode=put) and compile with iris_compile — never $SYSTEM.OBJ.Load / "
+                "$SYSTEM.OBJ.Import / $SYSTEM.OBJ.Compile from iris_execute. "
+                "(Deleting/exporting via iris_execute is fine.) "
+                "Load Skill(iris-interop-skills:production-lifecycle) for the proper deploy path."
+                % m.group(0)
+            )
 
     for nm in names:
         base = nm[:-4] if nm.lower().endswith(".cls") else nm
