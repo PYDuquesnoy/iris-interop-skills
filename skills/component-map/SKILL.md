@@ -58,6 +58,30 @@ message first (`messages`) and write the test first (`tdd`) as always.
    Use the typed MCP tools — the cheat-sheet lives in `message-search-debug` and the `introspect-dont-guess`
    agent resolves real names before you reference them.
 
+## Scaffold on disk before you implement (cuts compile-order and `NO_TESTS_FOUND` thrash)
+
+Once you have picked the components above, **do not start writing logic class-by-class and discovering the
+compile order by trial and error.** That is the single biggest source of wasted cycles in agent builds:
+classes referenced before their dependency exists (`COMPILE_MISSING_CLASS` / `ENS_COMPILE_ERR`), and tests
+invoked before they compile (`NO_TESTS_FOUND`). Instead, from the component plan, scaffold the whole build
+**on local disk first** — this is plain file-writing, NOT an MCP action:
+
+1. **Build-order manifest.** Write the topological compile order to a local file
+   (e.g. `src/BUILD-ORDER.md` or a comment block): **messages -> custom schemas -> DTs -> BO/BP -> rules
+   -> production**. Every later artefact depends on earlier ones, so compiling in this order means
+   `iris_doc(compile)` / `iris_compile` never hits a missing-dependency error.
+2. **Class-skeleton stubs in that order.** Write empty/typed `.cls` stubs under local `src/` in the
+   Atelier-nested layout, with the correct `<Package>.<Tipo>.<Name>` names, superclasses, and adapters
+   from the table above. Stubs only — signatures and `Extends`, no logic yet — so the dependency graph is
+   real on disk before any push.
+3. **TestProduction skeletons wired to exact names.** Write `%UnitTest.TestProduction` stubs whose
+   `Parameter PRODUCTION` and `##class(...)` references use the **exact** class names from step 2, so when
+   you later run `iris_test` you pass a name that exists and is compiled (no `NO_TESTS_FOUND`).
+
+Then fill in logic and push each class via the MCP **in manifest order**. Source of truth stays in local
+`src/`; **execution (compile/run/test) stays MCP-only** — scaffolding never reaches IRIS except through
+`iris_doc`/`iris_compile`/`iris_test`.
+
 ## See also
 
 - `interop` — the router; load this map right after it, before any per-component skill

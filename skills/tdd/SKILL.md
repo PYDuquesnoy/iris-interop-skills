@@ -284,6 +284,28 @@ do ##class(MyApp.Tests.BO.Menus2Cocina).Run()
 
 For runner mechanics — the `^UnitTestRoot` directory requirement, `DebugRunTestCase` qualifier syntax (boolean flags only), the MCP-friendly SqlProc wrapper that returns `passed=N failed=M`, how to read `^UnitTest.Result`, and the `Try / Catch + Quit` pitfall — see **`unit-tests`**. That skill is the framework toolbox; this one is the workflow.
 
+### `NO_TESTS_FOUND` recovery recipe — do NOT re-run blindly
+
+`iris_test` returning `NO_TESTS_FOUND` almost never means "no tests" — it means the runner could not find
+a compiled test class under the name you passed. Re-running the identical call will return the identical
+error. Work the cause instead, in this exact order:
+
+1. **Compile the test class FIRST, then run it.** The class must be compiled before `iris_test` can see
+   it. Push it with `iris_doc(mode=put, compile=true)` (or `iris_compile`) and confirm a clean compile —
+   a test class that failed to compile does not exist to the runner.
+2. **Run `iris_test` with the EXACT compiled class name** — fully qualified, case-correct
+   (`MyApp.Tests.DT.Censo2Menus`, not `Censo2Menus`, not `myapp.tests...`). An unqualified or
+   mis-cased name is the most common cause.
+3. **Act on the tool's `hint` / `candidates`.** `iris_test` returns these on a miss — they list the
+   names it *can* see. Pick the matching candidate and re-run with that exact name; do not guess a third
+   variant or fall back to running `Run()` from the terminal.
+4. **Verify the superclass.** The class must extend `%UnitTest.TestProduction` (or `%UnitTest.TestCase`)
+   and have at least one `Test*` method. A class that extends the wrong base, or whose methods are not
+   prefixed `Test`, compiles but exposes zero tests.
+5. Only after 1–4 — if it still reports `NO_TESTS_FOUND` — STOP and report the blocker (see the agent's
+   iteration cap). Do not loop, and do not switch to `$SYSTEM.OBJ.Load` / the terminal to "work around"
+   it: that does not change what the runner sees.
+
 ### After running — show the portal URL (ALWAYS)
 
 After every test run, **print the `%UnitTest.Portal.Home` URL** as the last line of output so the user can click through to drill into individual assert details. The portal provides navigable drill-down that is NOT visible from the terminal output alone.
