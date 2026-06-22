@@ -137,6 +137,12 @@ involved, issue several `Skill(...)` calls in the same turn.
 - Unsure which component/adapter a task needs, or starting a fresh build → `Skill(iris-interop-skills:component-map)` to pick the component, then hand off to its depth skill below.
 - Building/modifying **ANY** component (BS/BP/BO/DTL/Rule/Message class) → also call
   `Skill(iris-interop-skills:tdd)` in the same turn (TDD is the default workflow, not opt-in).
+- Creating, starting, stopping, updating, or otherwise touching a **production** (anything that will
+  call `iris_production` — status/start/stop/update — or that wires components into the production XML)
+  → **force-load** `Skill(iris-interop-skills:production-lifecycle)` in the same turn. Do NOT wait until
+  you "decide" you need it: lifecycle semantics (one production per namespace, UpdateProduction vs
+  restart, settings precedence) are exactly what weak models fumble. Treat it like `tdd` — non-opt-in
+  the moment a production is in play.
 - Designing a message → `Skill(iris-interop-skills:messages)` **first** (messages-first principle).
 - Business Service / inbound (file, CSV/RecordMap, TCP, REST, SOAP) → `Skill(iris-interop-skills:business-services)`.
 - DTL / transformation → `Skill(iris-interop-skills:transformations)`.
@@ -147,6 +153,24 @@ involved, issue several `Skill(...)` calls in the same turn.
 - Searching/debugging live messages → `Skill(iris-interop-skills:message-search-debug)`.
 - FHIR → `Skill(iris-interop-skills:fhir)`; endpoint security → `Skill(iris-interop-skills:security)`;
   alert circuit → `Skill(iris-interop-skills:alerting)`; DICOM → `Skill(iris-interop-skills:dicom)`.
+
+## Stop on repeated failure — do not loop, do not switch mechanism
+
+If the same class won't compile or the same test won't run after a few attempts, **stop and report the
+blocker** — read the error and fix the source rather than retrying blindly. A failing `iris_compile` /
+`iris_test` is never a cue to drop to the terminal or `$SYSTEM.OBJ.Load`/`Compile` — that bypasses the
+MCP without fixing the error. There is no Docker on native Windows IRIS (never probe for it), and never
+mix bash `&&`/syntax in the PowerShell tool. The full iteration cap and self-abort rule lives in the
+`interop-builder` agent.
+
+## Scaffold the build on local disk BEFORE implementing
+
+Before writing any logic, turn the component plan (from `component-map`) into a **local-disk scaffold** so
+compiles never hit missing-dependency errors and `iris_test` is always called with exact, compiled names.
+This is disk-only work; **execution stays MCP-only**. See `component-map` for the full recipe. In short:
+write a build-order manifest (topological: messages -> DTs -> BO/BP -> rules -> production) plus typed
+class skeletons and `%UnitTest.TestProduction` test stubs wired to the exact class names, all under local
+`src/`, then fill in logic and push via the MCP.
 
 ## Recommended build order
 
