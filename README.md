@@ -128,6 +128,51 @@ self-contained binary.
 Prefer not to install as a plugin? Clone the repo and open it as a project — Claude discovers the skills
 under `skills/`, the agents under `agents/`, and the examples under `BestPractices/`.
 
+## Permissions — let the MCP tools run without prompting
+
+The skills call the IRIS MCP tools constantly (`iris_doc`, `iris_compile`, `iris_execute`, `iris_query`,
+`iris_test`, …). By default Claude Code asks for permission on each new tool, which stalls an automated
+build — and **some models (e.g. Haiku) can't switch into auto‑accept / "auto" mode at all** ("auto mode
+not enabled for this model"), so toggling it is not an option. The reliable fix is an explicit
+**allowlist** that pre‑approves the MCP tools regardless of mode.
+
+Add a `permissions.allow` block to a `settings.json` (see scope note below). Use the server name you
+registered — `iris-interop-dev` (fork) or `iris-agentic-dev` (original):
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__iris-interop-dev__*"
+    ]
+  }
+}
+```
+
+The wildcard covers every tool on that server. Prefer to be explicit instead? List them:
+`mcp__iris-interop-dev__iris_doc`, `…__iris_compile`, `…__iris_execute`, `…__iris_query`,
+`…__iris_get_log`, `…__iris_production`, `…__iris_production_item`, `…__iris_interop_query`,
+`…__iris_lookup_manage`, `…__iris_lookup_transfer`, `…__iris_credential_list`,
+`…__iris_credential_manage`, `…__iris_table_info`, `…__docs_introspect`, `…__iris_symbols`,
+`…__iris_test`, `…__check_config`.
+
+**Scope — where to put it:**
+
+| File | Scope | Use when |
+|---|---|---|
+| `.claude/settings.json` (in the project, committed) | shared with everyone who clones the repo | a workshop / team repo where every user should get the same frictionless setup |
+| `~/.claude/settings.json` | your user, any project | your own machine, or when you run the skills from a directory **outside** the project tree (Claude only walks **up** from the cwd for project `settings.json`) |
+| `.claude/settings.local.json` | your user, this project, git‑ignored | personal, project‑specific overrides you don't want to commit |
+
+> **Note — the MCP tools only.** This allowlist is intentionally scoped to `mcp__…__*`. File edits
+> (`Write`/`Edit`) and shell (`Bash`) still follow the normal permission flow. The agents are required
+> to drive IRIS **only** through the MCP — never via `iris.exe`/`iris session`/`$SYSTEM.OBJ.Load*` — so
+> you should **not** need to allowlist a shell to build components. If you want fully unattended file
+> writes too, add `"Write"` and `"Edit"` to the list.
+
+After editing `settings.json`, **restart Claude Code** so it reloads permissions, then confirm a tool
+call (e.g. `check_config`) runs without a prompt.
+
 ## What's inside
 
 ### Skills (`skills/`)
